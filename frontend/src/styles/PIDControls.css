@@ -1,0 +1,12 @@
+.pid-controls {
+  min-width: 280px;
+}
+
+.pid-controls .chakra-numberinput {
+  background: white;
+}
+
+.pid-controls .chakra-numberinput__field {
+  text-align: center;
+  font-weight: 500;
+}

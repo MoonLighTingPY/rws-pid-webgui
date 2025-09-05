@@ -1,0 +1,11 @@
+.serial-controls {
+  min-width: 280px;
+}
+
+.serial-controls .chakra-select {
+  cursor: pointer;
+}
+
+.serial-controls .chakra-button {
+  font-weight: 500;
+}

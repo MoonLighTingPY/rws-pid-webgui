@@ -1,15 +1,19 @@
 import { 
   Box, 
   HStack, 
-  Input, 
+  VStack,
   Button, 
   Text, 
   NumberInput,
   NumberInputField,
-  useToast
+  useToast,
+  Divider,
+  Icon
 } from '@chakra-ui/react'
+import { FiSettings, FiDownload, FiUpload } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
+import '../styles/PIDControls.css'
 
 export default function PIDControls() {
   const { state, dispatch } = useStore()
@@ -111,76 +115,114 @@ export default function PIDControls() {
   }
 
   return (
-    <Box p={4} border="1px" borderColor="gray.200" borderRadius="md">
-      <Text mb={3} fontWeight="semibold">PID Controls</Text>
-      <HStack spacing={4}>
-        <Box>
-          <Text fontSize="sm" mb={1}>P</Text>
-          <NumberInput
-            value={state.pid.p}
-            onChange={(valueString) => 
-              dispatch({ type: 'PID_SET_P', payload: parseFloat(valueString) || 0 })
-            }
-            precision={2}
-            step={0.1}
-            width="100px"
-          >
-            <NumberInputField />
-          </NumberInput>
-        </Box>
+    <Box className="pid-controls" p={5} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
+      <VStack spacing={4} align="stretch">
+        <HStack justify="space-between" align="center">
+          <Text fontWeight="600" fontSize="lg" color="gray.700">PID Controls</Text>
+          <Icon as={FiSettings} color="gray.500" boxSize={5} />
+        </HStack>
+
+        <Divider />
         
-        <Box>
-          <Text fontSize="sm" mb={1}>I</Text>
-          <NumberInput
-            value={state.pid.i}
-            onChange={(valueString) => 
-              dispatch({ type: 'PID_SET_I', payload: parseFloat(valueString) || 0 })
-            }
-            precision={2}
-            step={0.1}
-            width="100px"
-          >
-            <NumberInputField />
-          </NumberInput>
-        </Box>
-        
-        <Box>
-          <Text fontSize="sm" mb={1}>D</Text>
-          <NumberInput
-            value={state.pid.d}
-            onChange={(valueString) => 
-              dispatch({ type: 'PID_SET_D', payload: parseFloat(valueString) || 0 })
-            }
-            precision={2}
-            step={0.1}
-            width="100px"
-          >
-            <NumberInputField />
-          </NumberInput>
-        </Box>
-        
-        <Box>
-          <Text fontSize="sm" mb={1} opacity={0}>Actions</Text>
-          <HStack>
-            <Button 
-              colorScheme="blue" 
-              size="sm" 
-              onClick={handleSet}
-              disabled={!state.serial.isConnected}
-            >
-              Set
-            </Button>
-            <Button 
-              colorScheme="green" 
-              size="sm" 
-              onClick={handleGet}
-              disabled={!state.serial.isConnected}
-            >
-              Get
-            </Button>
+        {/* PID Input Fields in a row */}
+        <VStack spacing={3} align="stretch">
+          <Text fontSize="sm" fontWeight="medium" color="gray.600">Coefficients</Text>
+          <HStack spacing={3}>
+            <Box flex="1">
+              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">P</Text>
+              <NumberInput
+                value={state.pid.p}
+                onChange={(valueString) => 
+                  dispatch({ type: 'PID_SET_P', payload: parseFloat(valueString) || 0 })
+                }
+                precision={2}
+                step={0.1}
+                size="sm"
+              >
+                <NumberInputField 
+                  textAlign="center" 
+                  borderColor="gray.300"
+                  _hover={{ borderColor: "gray.400" }}
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                />
+              </NumberInput>
+            </Box>
+            
+            <Box flex="1">
+              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">I</Text>
+              <NumberInput
+                value={state.pid.i}
+                onChange={(valueString) => 
+                  dispatch({ type: 'PID_SET_I', payload: parseFloat(valueString) || 0 })
+                }
+                precision={2}
+                step={0.1}
+                size="sm"
+              >
+                <NumberInputField 
+                  textAlign="center"
+                  borderColor="gray.300"
+                  _hover={{ borderColor: "gray.400" }}
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                />
+              </NumberInput>
+            </Box>
+            
+            <Box flex="1">
+              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">D</Text>
+              <NumberInput
+                value={state.pid.d}
+                onChange={(valueString) => 
+                  dispatch({ type: 'PID_SET_D', payload: parseFloat(valueString) || 0 })
+                }
+                precision={2}
+                step={0.1}
+                size="sm"
+              >
+                <NumberInputField 
+                  textAlign="center"
+                  borderColor="gray.300"
+                  _hover={{ borderColor: "gray.400" }}
+                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                />
+              </NumberInput>
+            </Box>
           </HStack>
-        </Box>
-      </HStack>
+        </VStack>
+        
+        {/* Action Buttons */}
+        <VStack spacing={2} align="stretch">
+          <Button 
+            colorScheme="blue" 
+            onClick={handleSet}
+            disabled={!state.serial.isConnected}
+            size="sm"
+            leftIcon={<Icon as={FiUpload} />}
+            _hover={{
+              transform: state.serial.isConnected ? "translateY(-1px)" : "none",
+              boxShadow: state.serial.isConnected ? "lg" : "none"
+            }}
+            transition="all 0.2s"
+          >
+            Set Values
+          </Button>
+          <Button 
+            colorScheme="green" 
+            onClick={handleGet}
+            disabled={!state.serial.isConnected}
+            size="sm"
+            variant="outline"
+            leftIcon={<Icon as={FiDownload} />}
+            _hover={{
+              transform: state.serial.isConnected ? "translateY(-1px)" : "none",
+              boxShadow: state.serial.isConnected ? "md" : "none"
+            }}
+            transition="all 0.2s"
+          >
+            Get Values
+          </Button>
+        </VStack>
+      </VStack>
     </Box>
   )
 }

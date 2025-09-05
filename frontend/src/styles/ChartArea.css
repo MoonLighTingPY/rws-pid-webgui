@@ -1,0 +1,18 @@
+.chart-area {
+  min-height: 600px;
+}
+
+.chart-container {
+  border-radius: 8px;
+  background: #fafafa;
+  padding: 16px;
+}
+
+.chart-area .recharts-cartesian-grid-horizontal line,
+.chart-area .recharts-cartesian-grid-vertical line {
+  stroke: #e2e8f0;
+}
+
+.chart-area .recharts-legend-wrapper {
+  padding-top: 16px;
+}
