@@ -1,0 +1,16 @@
+.command-console {
+  background: white;
+}
+
+.console-messages {
+  font-family: 'Courier New', monospace;
+  line-height: 1.4;
+}
+
+.console-message {
+  word-wrap: break-word;
+}
+
+.console-input {
+  font-family: 'Courier New', monospace;
+}

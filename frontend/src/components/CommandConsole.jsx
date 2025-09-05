@@ -6,10 +6,14 @@ import {
   Input,
   Button,
   Text,
-  useToast
+  useToast,
+  Icon,
+  Divider
 } from '@chakra-ui/react'
+import { FiTerminal, FiSend, FiTrash2 } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
+import '../styles/CommandConsole.css'
 
 export default function CommandConsole() {
   const { state, dispatch } = useStore()
@@ -93,56 +97,97 @@ export default function CommandConsole() {
   }
 
   return (
-    <Box p={4} border="1px" borderColor="gray.200" borderRadius="md">
-      <VStack align="stretch" spacing={3}>
-        <HStack justify="space-between">
-          <Text fontWeight="semibold">Command Console</Text>
-          <Button size="sm" onClick={handleClearConsole}>
+    <Box className="command-console" p={5} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
+      <VStack align="stretch" spacing={4}>
+        <HStack justify="space-between" align="center">
+          <HStack>
+            <Icon as={FiTerminal} color="gray.600" boxSize={5} />
+            <Text fontWeight="600" fontSize="lg" color="gray.700">Command Console</Text>
+          </HStack>
+          <Button 
+            size="sm" 
+            onClick={handleClearConsole} 
+            variant="outline"
+            leftIcon={<Icon as={FiTrash2} />}
+            borderColor="gray.300"
+            _hover={{ 
+              borderColor: "red.300", 
+              color: "red.500",
+              transform: "translateY(-1px)"
+            }}
+            transition="all 0.2s"
+          >
             Clear
           </Button>
         </HStack>
+
+        <Divider />
         
         {/* Console Messages */}
         <Box
-          height="200px"
+          className="console-messages"
+          height="180px"
           overflowY="auto"
           border="1px"
-          borderColor="gray.100"
-          borderRadius="md"
-          p={3}
-          bg="gray.50"
-          fontFamily="mono"
+          borderColor="gray.200"
+          borderRadius="lg"
+          p={4}
+          bg="gray.900"
           fontSize="sm"
+          color="gray.100"
         >
-          {state.serial.consoleMessages.map((message, index) => (
-            <Box key={index} mb={1}>
-              <Text
-                color={message.type === 'sent' ? 'blue.600' : 'green.600'}
-                display="inline"
-              >
-                [{formatTimestamp(message.timestamp)}] {message.type === 'sent' ? '>' : '<'} 
-              </Text>
-              <Text display="inline" ml={2}>
-                {message.text}
-              </Text>
-            </Box>
-          ))}
+          {state.serial.consoleMessages.length === 0 ? (
+            <Text color="gray.500" fontStyle="italic" textAlign="center" mt={8}>
+              No messages yet. Start by connecting to a COM port.
+            </Text>
+          ) : (
+            state.serial.consoleMessages.map((message, index) => (
+              <Box key={index} mb={2} className="console-message">
+                <Text
+                  color={message.type === 'sent' ? 'blue.300' : 'green.300'}
+                  display="inline"
+                  fontWeight="medium"
+                  fontSize="xs"
+                >
+                  [{formatTimestamp(message.timestamp)}] {message.type === 'sent' ? '>' : '<'} 
+                </Text>
+                <Text display="inline" ml={2} fontFamily="mono">
+                  {message.text}
+                </Text>
+              </Box>
+            ))
+          )}
           <div ref={messagesEndRef} />
         </Box>
 
         {/* Command Input */}
-        <HStack>
+        <HStack spacing={3}>
           <Input
+            className="console-input"
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Type command here..."
             disabled={!state.serial.isConnected}
+            bg="white"
+            borderColor="gray.300"
+            _hover={{ borderColor: "gray.400" }}
+            _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+            fontFamily="mono"
+            fontSize="sm"
           />
           <Button
             colorScheme="blue"
             onClick={handleSendCommand}
             disabled={!state.serial.isConnected || !command.trim()}
+            leftIcon={<Icon as={FiSend} />}
+            _hover={{
+              transform: (state.serial.isConnected && command.trim()) ? "translateY(-1px)" : "none",
+              boxShadow: (state.serial.isConnected && command.trim()) ? "lg" : "none"
+            }}
+            transition="all 0.2s"
+            minW="auto"
+            px={6}
           >
             Send
           </Button>
