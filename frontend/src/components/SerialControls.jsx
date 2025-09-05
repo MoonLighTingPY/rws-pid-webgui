@@ -50,15 +50,19 @@ export default function SerialControls() {
           const data = JSON.parse(event.data)
           
           if (data.type === 'chart') {
-            dispatch({
-              type: 'CHART_ADD_DATA',
-              payload: {
-                timestamp: data.timestamp,
-                setpoint: data.setpoint,
-                pitch: data.pitch,
-                error: data.error
-              }
-            })
+            if (state.serial.isStreaming) {
+              dispatch({
+                type: 'CHART_ADD_DATA',
+                payload: {
+                  timestamp: data.timestamp,
+                  setpoint: data.setpoint,
+                  pitch: data.pitch,
+                  error: data.error
+                }
+              })
+            } else {
+              // drop binary/chart data when not streaming
+            }
           } else if (data.type === 'console') {
             dispatch({
               type: 'SERIAL_ADD_CONSOLE_MESSAGE',
@@ -89,7 +93,7 @@ export default function SerialControls() {
         setEventSource(null)
       }
     }
-  }, [state.serial.isConnected, eventSource, dispatch])
+  }, [state.serial.isConnected, eventSource, dispatch, state.serial.isStreaming])
 
   const handleConnect = async () => {
     if (state.serial.isConnected) {
@@ -137,6 +141,10 @@ export default function SerialControls() {
       try {
         await apiService.connect(state.serial.selectedPort)
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: true })
+
+        // Ensure UI streaming flag is false on connect (require user to press Start)
+        dispatch({ type: 'SERIAL_SET_STREAMING', payload: false })
+
         toast({
           title: 'Connected',
           description: `Connected to ${state.serial.selectedPort}`,
