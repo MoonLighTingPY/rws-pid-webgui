@@ -7,31 +7,29 @@ import SerialControls from './components/SerialControls.jsx'
 
 function App() {
   return (
-    <Box minH="100vh" bg="gray.50">
-      <Container maxW="full" p={4}>
+    <Box h="100vh" bg="gray.50" overflow="hidden">
+      <Container maxW="full" p={3} h="100%">
         <Grid 
-          templateRows="auto 1fr auto" 
-          templateColumns="1fr 320px" 
-          gap={4} 
-          minH="calc(100vh - 2rem)"
+          templateRows="1fr auto" 
+          templateColumns="3.5fr 1fr" 
+          gap={3} 
+          h="100%"
         >
           {/* Chart Area - Main content */}
-          <GridItem rowSpan={1} colSpan={1}>
+          <GridItem rowSpan={1} colSpan={1} minH="0">
             <ChartArea />
           </GridItem>
 
-          {/* Serial and PID Controls - Right sidebar */}
-          <GridItem rowSpan={1} colSpan={1}>
-            <Box display="flex" flexDirection="column" gap={4} height="100%">
+          <GridItem rowSpan={2} colSpan={1} minH="0">
+            <Box display="flex" flexDirection="column" gap={3} h="100%" minH="0">
               <SerialControls />
               <PIDControls />
+              <Box flex="2" minH="0">
+                <CommandConsole />
+              </Box>
             </Box>
           </GridItem>
 
-          {/* Command Console - Bottom spanning both columns */}
-          <GridItem rowSpan={1} colSpan={2}>
-            <CommandConsole />
-          </GridItem>
         </Grid>
       </Container>
     </Box>

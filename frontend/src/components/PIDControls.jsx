@@ -115,19 +115,27 @@ export default function PIDControls() {
   }
 
   return (
-    <Box className="pid-controls" p={5} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
-      <VStack spacing={4} align="stretch">
-        <HStack justify="space-between" align="center">
-          <Text fontWeight="600" fontSize="lg" color="gray.700">PID Controls</Text>
-          <Icon as={FiSettings} color="gray.500" boxSize={5} />
+    <Box 
+      className="pid-controls" 
+      p={4} 
+      bg="white" 
+      borderRadius="xl" 
+      shadow="lg" 
+      border="1px" 
+      borderColor="gray.100"
+      flexShrink={0}
+    >
+      <VStack spacing={3} align="stretch" h="100%">
+        <HStack justify="space-between" align="center" flexShrink={0}>
+          <Text fontWeight="600" fontSize="md" color="gray.700">PID Coefficients</Text>
+          <Icon as={FiSettings} color="gray.500" boxSize={4} />
         </HStack>
 
         <Divider />
         
         {/* PID Input Fields in a row */}
-        <VStack spacing={3} align="stretch">
-          <Text fontSize="sm" fontWeight="medium" color="gray.600">Coefficients</Text>
-          <HStack spacing={3}>
+        <VStack spacing={2} align="stretch" flex="1">
+          <HStack spacing={2}>
             <Box flex="1">
               <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">P</Text>
               <NumberInput
@@ -144,6 +152,7 @@ export default function PIDControls() {
                   borderColor="gray.300"
                   _hover={{ borderColor: "gray.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                  fontSize="sm"
                 />
               </NumberInput>
             </Box>
@@ -164,6 +173,7 @@ export default function PIDControls() {
                   borderColor="gray.300"
                   _hover={{ borderColor: "gray.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                  fontSize="sm"
                 />
               </NumberInput>
             </Box>
@@ -184,6 +194,7 @@ export default function PIDControls() {
                   borderColor="gray.300"
                   _hover={{ borderColor: "gray.400" }}
                   _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                  fontSize="sm"
                 />
               </NumberInput>
             </Box>
@@ -191,13 +202,13 @@ export default function PIDControls() {
         </VStack>
         
         {/* Action Buttons */}
-        <VStack spacing={2} align="stretch">
+        <VStack spacing={2} align="stretch" flexShrink={0}>
           <Button 
             colorScheme="blue" 
             onClick={handleSet}
             disabled={!state.serial.isConnected}
             size="sm"
-            leftIcon={<Icon as={FiUpload} />}
+            leftIcon={<Icon as={FiUpload} boxSize={3} />}
             _hover={{
               transform: state.serial.isConnected ? "translateY(-1px)" : "none",
               boxShadow: state.serial.isConnected ? "lg" : "none"
@@ -212,7 +223,7 @@ export default function PIDControls() {
             disabled={!state.serial.isConnected}
             size="sm"
             variant="outline"
-            leftIcon={<Icon as={FiDownload} />}
+            leftIcon={<Icon as={FiDownload} boxSize={3} />}
             _hover={{
               transform: state.serial.isConnected ? "translateY(-1px)" : "none",
               boxShadow: state.serial.isConnected ? "md" : "none"

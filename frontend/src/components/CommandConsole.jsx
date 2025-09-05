@@ -97,52 +97,41 @@ export default function CommandConsole() {
   }
 
   return (
-    <Box className="command-console" p={5} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
-      <VStack align="stretch" spacing={4}>
-        <HStack justify="space-between" align="center">
-          <HStack>
-            <Icon as={FiTerminal} color="gray.600" boxSize={5} />
-            <Text fontWeight="600" fontSize="lg" color="gray.700">Command Console</Text>
-          </HStack>
-          <Button 
-            size="sm" 
-            onClick={handleClearConsole} 
-            variant="outline"
-            leftIcon={<Icon as={FiTrash2} />}
-            borderColor="gray.300"
-            _hover={{ 
-              borderColor: "red.300", 
-              color: "red.500",
-              transform: "translateY(-1px)"
-            }}
-            transition="all 0.2s"
-          >
-            Clear
-          </Button>
-        </HStack>
-
-        <Divider />
+    <Box 
+      className="command-console" 
+      p={4} 
+      bg="white" 
+      borderRadius="xl" 
+      shadow="lg" 
+      border="1px" 
+      borderColor="gray.100"
+      h="100%"
+      display="flex"
+      flexDirection="column"
+    >
+      <VStack align="stretch" spacing={3} h="100%">
         
         {/* Console Messages */}
         <Box
           className="console-messages"
-          height="180px"
+          flex="1"
           overflowY="auto"
           border="1px"
           borderColor="gray.200"
           borderRadius="lg"
-          p={4}
+          p={3}
           bg="gray.900"
-          fontSize="sm"
+          fontSize="xs"
           color="gray.100"
+          minH="0"
         >
           {state.serial.consoleMessages.length === 0 ? (
-            <Text color="gray.500" fontStyle="italic" textAlign="center" mt={8}>
+            <Text color="gray.500" fontStyle="italic" textAlign="center" mt={4}>
               No messages yet. Start by connecting to a COM port.
             </Text>
           ) : (
             state.serial.consoleMessages.map((message, index) => (
-              <Box key={index} mb={2} className="console-message">
+              <Box key={index} mb={1} className="console-message">
                 <Text
                   color={message.type === 'sent' ? 'blue.300' : 'green.300'}
                   display="inline"
@@ -151,7 +140,7 @@ export default function CommandConsole() {
                 >
                   [{formatTimestamp(message.timestamp)}] {message.type === 'sent' ? '>' : '<'} 
                 </Text>
-                <Text display="inline" ml={2} fontFamily="mono">
+                <Text display="inline" ml={2} fontFamily="mono" fontSize="xs">
                   {message.text}
                 </Text>
               </Box>
@@ -161,7 +150,7 @@ export default function CommandConsole() {
         </Box>
 
         {/* Command Input */}
-        <HStack spacing={3}>
+        <HStack spacing={2} flexShrink={0}>
           <Input
             className="console-input"
             value={command}
@@ -175,19 +164,36 @@ export default function CommandConsole() {
             _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
             fontFamily="mono"
             fontSize="sm"
+            size="sm"
           />
+          <Button 
+            size="sm" 
+            onClick={handleClearConsole} 
+            variant="outline"
+            leftIcon={<Icon as={FiTrash2} boxSize={3} />}
+            borderColor="gray.300"
+            _hover={{ 
+              borderColor: "red.300", 
+              color: "red.500",
+              transform: "translateY(-1px)"
+            }}
+            transition="all 0.2s"
+            px={3}
+          >
+            Clear
+          </Button>
           <Button
             colorScheme="blue"
             onClick={handleSendCommand}
             disabled={!state.serial.isConnected || !command.trim()}
-            leftIcon={<Icon as={FiSend} />}
+            leftIcon={<Icon as={FiSend} boxSize={3} />}
             _hover={{
               transform: (state.serial.isConnected && command.trim()) ? "translateY(-1px)" : "none",
               boxShadow: (state.serial.isConnected && command.trim()) ? "lg" : "none"
             }}
             transition="all 0.2s"
-            minW="auto"
-            px={6}
+            size="sm"
+            px={4}
           >
             Send
           </Button>
