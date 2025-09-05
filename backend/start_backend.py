@@ -1,4 +1,4 @@
-from flask import Flask, request, Response, jsonify, stream_with_context
+from flask import Flask, request, Response, jsonify, stream_with_context, send_from_directory
 try:
     from flask_cors import CORS
 except Exception:
@@ -10,11 +10,18 @@ import struct
 import json
 import serial
 import serial.tools.list_ports
+import os
+import sys
 
 app = Flask(__name__)
 if CORS:
     # allow cross-origin requests for development (including EventSource)
     CORS(app, resources={r"/stream": {"origins": "*"}, r"/api/*": {"origins": "*"}})
+
+# When packaged by PyInstaller, data files are extracted to sys._MEIPASS.
+# Use that location if present so the packaged executable can serve built frontend files.
+BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
+WEB_DIR = os.path.join(BASE_DIR, "web")  # populated by build.bat / included in bundle
 
 class SerialService:
     def __init__(self):
@@ -107,6 +114,17 @@ def list_ports():
     ports = [p.device for p in serial.tools.list_ports.comports()]
     return jsonify({"ports": ports})
 
+# Serve frontend (fallback to index.html for SPA routes)
+@app.route("/", defaults={"path": ""})
+@app.route("/<path:path>")
+def serve_frontend(path):
+    if os.path.isdir(WEB_DIR):
+        full_path = os.path.join(WEB_DIR, path)
+        if path and os.path.exists(full_path) and os.path.isfile(full_path):
+            return send_from_directory(WEB_DIR, path)
+        return send_from_directory(WEB_DIR, "index.html")
+    return jsonify({"error": "frontend not built"}), 404
+
 @app.route("/api/connect", methods=["POST"])
 def api_connect():
     data = request.json or {}
@@ -157,6 +175,11 @@ def stream():
     )
 
 if __name__ == "__main__":
+    # Development run (when not packaged). Ensure WEB_DIR points to local web folder.
+    if not os.path.isdir(WEB_DIR):
+        BASE_DIR = os.path.dirname(__file__)
+        WEB_DIR = os.path.join(BASE_DIR, "web")
+
     # Run Flask dev server on port 5000
     print("Starting backend on http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, threaded=True)
