@@ -44,14 +44,27 @@ def cli_pid(argv):
     """Simulate C function cli_pid(argc, argv)"""
     global pid
 
-    if len(argv) == 1 or not _is_float(argv[0]):  
-        # Print PID values
+    # No args -> print PID values
+    if not argv:
         msg = f"P: {pid['p']:.2f}, I: {pid['i']:.2f}, D: {pid['d']:.2f}\n"
         ser.write(msg.encode())
         return
 
-    arg0 = argv[0]
-    if len(argv) < 2 or not _is_float(argv[1]):
+    # Single arg:
+    #  - 'pid' handled above,
+    #  - 'pid p' (missing value) -> invalid value
+    if len(argv) == 1:
+        if argv[0].lower() in ("p", "i", "d"):
+            ser.write(b"Invalid value\n")
+            return
+        # unknown single arg -> print values (fallback)
+        msg = f"P: {pid['p']:.2f}, I: {pid['i']:.2f}, D: {pid['d']:.2f}\n"
+        ser.write(msg.encode())
+        return
+
+    # Now expect at least two args for setting: <arg0> <value>
+    arg0 = argv[0].lower()
+    if not _is_float(argv[1]):
         ser.write(b"Invalid value\n")
         return
 
