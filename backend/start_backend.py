@@ -1,4 +1,8 @@
 from flask import Flask, request, Response, jsonify, stream_with_context
+try:
+    from flask_cors import CORS
+except Exception:
+    CORS = None
 import threading
 import queue
 import time
@@ -8,6 +12,9 @@ import serial
 import serial.tools.list_ports
 
 app = Flask(__name__)
+if CORS:
+    # allow cross-origin requests for development (including EventSource)
+    CORS(app, resources={r"/stream": {"origins": "*"}, r"/api/*": {"origins": "*"}})
 
 class SerialService:
     def __init__(self):
@@ -92,6 +99,7 @@ serial_service = SerialService()
 def add_cors_headers(response):
     response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["Access-Control-Allow-Headers"] = "Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET,POST,OPTIONS"
     return response
 
 @app.route("/api/ports", methods=["GET"])
@@ -133,10 +141,20 @@ def stream():
         while True:
             item = serial_service.q.get()
             yield "data: " + json.dumps(item) + "\n\n"
-    return Response(stream_with_context(event_stream()), mimetype="text/event-stream", headers={
+
+    headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
-    })
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Headers": "Content-Type",
+        "Access-Control-Allow-Methods": "GET",
+    }
+
+    return Response(
+        stream_with_context(event_stream()),
+        mimetype="text/event-stream",
+        headers=headers
+    )
 
 if __name__ == "__main__":
     # Run Flask dev server on port 5000

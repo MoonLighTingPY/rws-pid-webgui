@@ -135,6 +135,6 @@ print(f"Emulator running on {PORT} @ {BAUD}")
 while True:
     if streaming:
         send_packet()
-        time.sleep(0.02)  # 50 Hz
+        time.sleep(0.001)  # 50 Hz
     else:
         time.sleep(0.1)
