@@ -35,11 +35,23 @@ export default function ChartArea() {
   }
 
   return (
-    <Box className="chart-area" p={6} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
-      <VStack align="stretch" spacing={4}>
+    <Box 
+      className="chart-area" 
+      p={4} 
+      bg="white" 
+      borderRadius="xl" 
+      shadow="lg" 
+      border="1px" 
+      borderColor="gray.100"
+      h="100%"
+      display="flex"
+      flexDirection="column"
+    >
+      <VStack align="stretch" spacing={3} h="100%">
+        
         {/* Time Window Slider */}
-        <Box bg="gray.50" p={4} borderRadius="lg">
-          <Text mb={3} fontWeight="medium" color="gray.600">
+        <Box bg="gray.50" p={3} borderRadius="lg" flexShrink={0}>
+          <Text mb={2} fontWeight="medium" color="gray.600" fontSize="sm">
             Time Window: <Text as="span" color="blue.600" fontWeight="semibold">{state.chart.timeWindow}s</Text>
           </Text>
           <Slider
@@ -53,14 +65,22 @@ export default function ChartArea() {
             <SliderTrack bg="gray.200">
               <SliderFilledTrack />
             </SliderTrack>
-            <SliderThumb boxSize={5} />
+            <SliderThumb boxSize={4} />
           </Slider>
         </Box>
 
         {/* Chart */}
-        <Box className="chart-container" height="700px" bg="white" borderRadius="lg" border="1px" borderColor="gray.200">
+        <Box 
+          className="chart-container" 
+          flex="1" 
+          bg="white" 
+          borderRadius="lg" 
+          border="1px" 
+          borderColor="gray.200"
+          minH="0"
+        >
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
               <XAxis
                 dataKey="time"
@@ -69,8 +89,9 @@ export default function ChartArea() {
                 domain={['dataMin', 'dataMax']}
                 tickFormatter={formatTimestamp}
                 stroke="#718096"
+                fontSize={12}
               />
-              <YAxis stroke="#718096" />
+              <YAxis stroke="#718096" fontSize={12} />
               <Tooltip
                 labelFormatter={formatTimestamp}
                 formatter={(value, name) => [value.toFixed(2), name]}
@@ -78,7 +99,8 @@ export default function ChartArea() {
                   backgroundColor: 'white', 
                   border: '1px solid #e2e8f0',
                   borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  fontSize: '12px'
                 }}
               />
               <Legend />

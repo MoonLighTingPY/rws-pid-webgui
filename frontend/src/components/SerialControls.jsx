@@ -193,22 +193,31 @@ export default function SerialControls() {
   }
 
   return (
-    <Box className="serial-controls" p={5} bg="white" borderRadius="xl" shadow="lg" border="1px" borderColor="gray.100">
-      <VStack spacing={4} align="stretch">
+    <Box 
+      className="serial-controls" 
+      p={4} 
+      bg="white" 
+      borderRadius="xl" 
+      shadow="lg" 
+      border="1px" 
+      borderColor="gray.100"
+      flexShrink={0}
+    >
+      <VStack spacing={3} align="stretch">
         <HStack justify="space-between" align="center">
-          <Text fontWeight="600" fontSize="lg" color="gray.700">Serial Connection</Text>
+          <Text fontWeight="600" fontSize="md" color="gray.700">Serial Connection</Text>
           <Icon 
             as={state.serial.isConnected ? FiWifi : FiWifiOff} 
             color={state.serial.isConnected ? "green.500" : "gray.400"}
-            boxSize={5}
+            boxSize={4}
           />
         </HStack>
 
         <Divider />
         
-        <VStack spacing={3} align="stretch">
+        <VStack spacing={2} align="stretch">
           <Box>
-            <Text fontSize="sm" mb={2} fontWeight="medium" color="gray.600">COM Port</Text>
+            <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.600">COM Port</Text>
             <HStack spacing={2}>
               <Select
                 placeholder="Select COM port"
@@ -220,6 +229,7 @@ export default function SerialControls() {
                 _hover={{ borderColor: "gray.400" }}
                 _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 flex="1"
+                size="sm"
               >
                 {state.serial.availablePorts.map((port) => (
                   <option key={port} value={port}>
@@ -229,13 +239,13 @@ export default function SerialControls() {
               </Select>
               <Button 
                 onClick={loadPorts} 
-                size="md" 
+                size="sm" 
                 variant="outline"
                 minW="auto"
-                px={3}
+                px={2}
                 borderColor="gray.300"
               >
-                <Icon as={FiRefreshCw} />
+                <Icon as={FiRefreshCw} boxSize={3} />
               </Button>
             </HStack>
           </Box>
@@ -243,8 +253,8 @@ export default function SerialControls() {
           <Button
             colorScheme={state.serial.isConnected ? "red" : "blue"}
             onClick={handleConnect}
-            size="md"
-            leftIcon={<Icon as={state.serial.isConnected ? FiWifiOff : FiWifi} />}
+            size="sm"
+            leftIcon={<Icon as={state.serial.isConnected ? FiWifiOff : FiWifi} boxSize={3} />}
             _hover={{
               transform: "translateY(-1px)",
               boxShadow: "lg"
@@ -258,8 +268,8 @@ export default function SerialControls() {
             colorScheme={state.serial.isStreaming ? "orange" : "green"}
             onClick={handleStartStop}
             disabled={!state.serial.isConnected}
-            size="md"
-            leftIcon={<Icon as={state.serial.isStreaming ? FiPause : FiPlay} />}
+            size="sm"
+            leftIcon={<Icon as={state.serial.isStreaming ? FiPause : FiPlay} boxSize={3} />}
             _hover={{
               transform: state.serial.isConnected ? "translateY(-1px)" : "none",
               boxShadow: state.serial.isConnected ? "lg" : "none"

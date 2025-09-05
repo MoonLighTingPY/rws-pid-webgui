@@ -12,10 +12,7 @@ export function chartReducer(state, action) {
       return { ...state, data: filteredData }
     }
     case 'CHART_SET_TIME_WINDOW': {
-      const newTimeWindow = action.payload
-      const newCutoffTime = Date.now() - (newTimeWindow * 1000)
-      const filteredForNewWindow = state.data.filter(point => point.timestamp >= newCutoffTime)
-      return { ...state, timeWindow: newTimeWindow, data: filteredForNewWindow }
+      return { ...state, timeWindow: action.payload };
     }
     case 'CHART_CLEAR_DATA':
       return { ...state, data: [] }
