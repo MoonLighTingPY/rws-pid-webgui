@@ -4,8 +4,7 @@ import {
   VStack,
   Button, 
   Text, 
-  NumberInput,
-  NumberInputField,
+  Input, // Change from NumberInput to Input
   useToast,
   Divider,
   Icon
@@ -14,10 +13,56 @@ import { FiSettings, FiDownload, FiUpload } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/PIDControls.css'
+import { useState, useEffect } from 'react'
 
 export default function PIDControls() {
   const { state, dispatch } = useStore()
   const toast = useToast()
+  const [pInput, setPInput] = useState(state.pid.p.toString())
+  const [iInput, setIInput] = useState(state.pid.i.toString())
+  const [dInput, setDInput] = useState(state.pid.d.toString())
+
+  // Sync local input when store changes (e.g. after GET)
+  useEffect(() => {
+    setPInput(state.pid.p.toString())
+    setIInput(state.pid.i.toString())
+    setDInput(state.pid.d.toString())
+  }, [state.pid.p, state.pid.i, state.pid.d])
+
+  // Validation logic
+  const validateInput = (val) => {
+    // Accept partial numbers like "-", "0.", but not empty or just ".":
+    if (val === "" || val === "." || val === "-.") return false
+    const parsed = parseFloat(val)
+    if (isNaN(parsed)) return false
+    return true
+  }
+  const pValid = validateInput(pInput)
+  const iValid = validateInput(iInput)
+  const dValid = validateInput(dInput)
+  const allValid = pValid && iValid && dValid
+
+  // Handle input change with validation
+  const handleInputChange = (value, setter) => {
+    // Allow typing partial numbers
+    if (value === "" || value === "-" || value === "." || value === "-." || /^-?\d*\.?\d*$/.test(value)) {
+      setter(value)
+    }
+  }
+
+  const handleInputBlur = (value, setter, type) => {
+    const val = parseFloat(value)
+    if (validateInput(value) && isFinite(val)) {
+      dispatch({ type, payload: val })
+      setter(val.toString()) // Normalize the display
+    } else {
+      // Reset to store value if invalid
+      const storeValue = type === 'PID_SET_P' ? state.pid.p : 
+                        type === 'PID_SET_I' ? state.pid.i : 
+                        state.pid.d
+      setter(storeValue.toString())
+    }
+  }
 
   const handleSet = async () => {
     if (!state.serial.isConnected) {
@@ -138,65 +183,57 @@ export default function PIDControls() {
           <HStack spacing={2}>
             <Box flex="1">
               <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">P</Text>
-              <NumberInput
-                value={state.pid.p}
-                onChange={(valueString) => 
-                  dispatch({ type: 'PID_SET_P', payload: parseFloat(valueString) || 0 })
-                }
-                precision={2}
-                step={0.1}
+              <Input
+                value={pInput}
+                onChange={(e) => handleInputChange(e.target.value, setPInput, 'PID_SET_P')}
+                onBlur={(e) => handleInputBlur(e.target.value, setPInput, 'PID_SET_P')}
+                textAlign="center" 
+                borderColor="gray.300"
+                _hover={{ borderColor: "gray.400" }}
+                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                fontSize="sm"
                 size="sm"
-              >
-                <NumberInputField 
-                  textAlign="center" 
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "gray.400" }}
-                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
-                  fontSize="sm"
-                />
-              </NumberInput>
+                placeholder="0.00"
+              />
+              <Box minH="18px" mt={1} textAlign="center">
+                {!pValid && <Text color="red.500" fontSize="xs">P value incorrect</Text>}
+              </Box>
             </Box>
-            
             <Box flex="1">
               <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">I</Text>
-              <NumberInput
-                value={state.pid.i}
-                onChange={(valueString) => 
-                  dispatch({ type: 'PID_SET_I', payload: parseFloat(valueString) || 0 })
-                }
-                precision={2}
-                step={0.1}
+              <Input
+                value={iInput}
+                onChange={(e) => handleInputChange(e.target.value, setIInput, 'PID_SET_I')}
+                onBlur={(e) => handleInputBlur(e.target.value, setIInput, 'PID_SET_I')}
+                textAlign="center"
+                borderColor="gray.300"
+                _hover={{ borderColor: "gray.400" }}
+                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                fontSize="sm"
                 size="sm"
-              >
-                <NumberInputField 
-                  textAlign="center"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "gray.400" }}
-                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
-                  fontSize="sm"
-                />
-              </NumberInput>
+                placeholder="0.00"
+              />
+              <Box minH="18px" mt={1} textAlign="center">
+                {!iValid && <Text color="red.500" fontSize="xs">I value incorrect</Text>}
+              </Box>
             </Box>
-            
             <Box flex="1">
               <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">D</Text>
-              <NumberInput
-                value={state.pid.d}
-                onChange={(valueString) => 
-                  dispatch({ type: 'PID_SET_D', payload: parseFloat(valueString) || 0 })
-                }
-                precision={2}
-                step={0.1}
+              <Input
+                value={dInput}
+                onChange={(e) => handleInputChange(e.target.value, setDInput, 'PID_SET_D')}
+                onBlur={(e) => handleInputBlur(e.target.value, setDInput, 'PID_SET_D')}
+                textAlign="center"
+                borderColor="gray.300"
+                _hover={{ borderColor: "gray.400" }}
+                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                fontSize="sm"
                 size="sm"
-              >
-                <NumberInputField 
-                  textAlign="center"
-                  borderColor="gray.300"
-                  _hover={{ borderColor: "gray.400" }}
-                  _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
-                  fontSize="sm"
-                />
-              </NumberInput>
+                placeholder="0.00"
+              />
+              <Box minH="18px" mt={1} textAlign="center">
+                {!dValid && <Text color="red.500" fontSize="xs">D value incorrect</Text>}
+              </Box>
             </Box>
           </HStack>
         </VStack>
@@ -206,12 +243,12 @@ export default function PIDControls() {
           <Button 
             colorScheme="blue" 
             onClick={handleSet}
-            disabled={!state.serial.isConnected}
+            disabled={!state.serial.isConnected || !allValid}
             size="sm"
             leftIcon={<Icon as={FiUpload} boxSize={3} />}
             _hover={{
-              transform: state.serial.isConnected ? "translateY(-1px)" : "none",
-              boxShadow: state.serial.isConnected ? "lg" : "none"
+              transform: state.serial.isConnected && allValid ? "translateY(-1px)" : "none",
+              boxShadow: state.serial.isConnected && allValid ? "lg" : "none"
             }}
             transition="all 0.2s"
           >
