@@ -32,16 +32,16 @@ export default function PIDControls() {
     }
 
     try {
-      // Send PID values individually
-      await apiService.sendCommand(`pid p ${state.pid.p}`)
-      await apiService.sendCommand(`pid i ${state.pid.i}`)
-      await apiService.sendCommand(`pid d ${state.pid.d}`)
+      // Send PID values individually with new commands
+      await apiService.sendCommand(`pid set p ${state.pid.p}`)
+      await apiService.sendCommand(`pid set i ${state.pid.i}`)
+      await apiService.sendCommand(`pid set d ${state.pid.d}`)
 
       // Add console messages for sent commands
       const commands = [
-        `pid p ${state.pid.p}`,
-        `pid i ${state.pid.i}`,
-        `pid d ${state.pid.d}`
+        `pid set p ${state.pid.p}`,
+        `pid set i ${state.pid.i}`,
+        `pid set d ${state.pid.d}`
       ]
       
       commands.forEach(cmd => {
@@ -85,13 +85,13 @@ export default function PIDControls() {
     }
 
     try {
-      await apiService.sendCommand('pid')
+      await apiService.sendCommand('pid show')
       
       dispatch({
         type: 'SERIAL_ADD_CONSOLE_MESSAGE',
         payload: {
           timestamp: Date.now(),
-          text: 'pid',
+          text: 'pid show',
           type: 'sent'
         }
       })

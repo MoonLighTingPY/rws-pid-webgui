@@ -100,7 +100,7 @@ export default function SerialControls() {
       // Disconnect
       try {
         if (state.serial.isStreaming) {
-          await apiService.sendCommand('gui stop')
+          await apiService.sendCommand('pid stream off')
           dispatch({ type: 'SERIAL_SET_STREAMING', payload: false })
         }
         await apiService.disconnect()
@@ -177,7 +177,7 @@ export default function SerialControls() {
     }
 
     try {
-      const command = state.serial.isStreaming ? 'gui stop' : 'gui start'
+      const command = state.serial.isStreaming ? 'pid stream off' : 'pid stream on'
       await apiService.sendCommand(command)
 
       // Clear chart data when starting streaming
