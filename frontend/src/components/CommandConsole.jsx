@@ -15,6 +15,66 @@ import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/CommandConsole.css'
 
+// Utility to parse ANSI color codes and return React elements
+function parseAnsiToReact(text) {
+  // Basic VT100 color mapping
+  const ansiColors = {
+    '30': '#222', // black
+    '31': '#e53e3e', // red
+    '32': '#38a169', // green
+    '33': '#d69e2e', // yellow
+    '34': '#3182ce', // blue
+    '35': '#d53f8c', // magenta
+    '36': '#00b5d8', // cyan
+    '37': '#e2e8f0', // white
+    '90': '#718096', // bright black
+    '91': '#f56565', // bright red
+    '92': '#68d391', // bright green
+    '93': '#faf089', // bright yellow
+    '94': '#63b3ed', // bright blue
+    '95': '#f687b3', // bright magenta
+    '96': '#81e6d9', // bright cyan
+    '97': '#f7fafc', // bright white
+  };
+
+  // Split text into segments by ANSI codes
+  // eslint-disable-next-line no-control-regex
+  const regex = /\x1b\[(\d+)m/g;
+  let result = [];
+  let lastIndex = 0;
+  let color = null;
+  let match;
+  let key = 0;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      // Add previous plain text
+      result.push(
+        <span key={key++} style={color ? { color } : {}}>
+          {text.slice(lastIndex, match.index)}
+        </span>
+      );
+    }
+    // Update color
+    const code = match[1];
+    if (code === '0') {
+      color = null; // reset
+    } else if (ansiColors[code]) {
+      color = ansiColors[code];
+    }
+    lastIndex = regex.lastIndex;
+  }
+  // Add remaining text
+  if (lastIndex < text.length) {
+    result.push(
+      <span key={key++} style={color ? { color } : {}}>
+        {text.slice(lastIndex)}
+      </span>
+    );
+  }
+  return result;
+}
+
 export default function CommandConsole() {
   const { state, dispatch } = useStore()
   const [command, setCommand] = useState('')
@@ -30,7 +90,7 @@ export default function CommandConsole() {
   useEffect(() => {
     const lastMessage = state.serial.consoleMessages[state.serial.consoleMessages.length - 1]
     if (lastMessage && lastMessage.type === 'received') {
-      const pidMatch = lastMessage.text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+),\s*D:\s*([\d.]+)/)
+      const pidMatch = lastMessage.text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+),\s*D:\s*([\d.]+)/i)
       if (pidMatch) {
         dispatch({
           type: 'PID_SET_VALUES',
@@ -92,9 +152,6 @@ export default function CommandConsole() {
     dispatch({ type: 'SERIAL_CLEAR_CONSOLE' })
   }
 
-  const formatTimestamp = (timestamp) => {
-    return new Date(timestamp).toLocaleTimeString()
-  }
 
   return (
     <Box 
@@ -132,16 +189,8 @@ export default function CommandConsole() {
           ) : (
             state.serial.consoleMessages.map((message, index) => (
               <Box key={index} mb={1} className="console-message">
-                <Text
-                  color={message.type === 'sent' ? 'blue.300' : 'green.300'}
-                  display="inline"
-                  fontWeight="medium"
-                  fontSize="xs"
-                >
-                  [{formatTimestamp(message.timestamp)}] {message.type === 'sent' ? '>' : '<'} 
-                </Text>
-                <Text display="inline" ml={2} fontFamily="mono" fontSize="xs">
-                  {message.text}
+                <Text display="inline" fontFamily="mono" fontSize="xs">
+                  {parseAnsiToReact(message.text)}
                 </Text>
               </Box>
             ))
