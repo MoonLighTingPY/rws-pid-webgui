@@ -164,13 +164,13 @@ export default function SerialControls() {
   return (
     <Box 
       className="serial-controls" 
-      p={4} 
-      bg="white" 
-      borderRadius="xl" 
-      shadow="lg" 
+      p={3} 
+      bg="gray.50" 
+      borderRadius="lg" 
       border="1px" 
-      borderColor="gray.100"
+      borderColor="gray.200"
       flexShrink={0}
+      minW="0"              // defensive
     >
       <VStack spacing={3} align="stretch">
         <HStack justify="space-between" align="center">
