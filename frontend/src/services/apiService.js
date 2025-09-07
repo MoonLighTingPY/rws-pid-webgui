@@ -38,5 +38,9 @@ export const apiService = {
 
   createEventSource() {
     return new EventSource(`${API_BASE}/stream`)
+  },
+
+  createWebSocket() {
+    return new WebSocket(`ws://127.0.0.1:5000/ws`)
   }
 }
