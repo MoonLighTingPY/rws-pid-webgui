@@ -1,5 +1,5 @@
 .pid-controls {
-  min-width: 280px;
+  min-width: 18rem; /* use relative rem unit instead of px */
 }
 
 .pid-controls .chakra-numberinput {

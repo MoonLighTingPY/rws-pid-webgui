@@ -2,6 +2,7 @@ import React, { createContext, useContext, useReducer } from 'react'
 import { serialReducer, initialSerialState } from './slices/serialSlice'
 import { chartReducer, initialChartState } from './slices/chartSlice'
 import { pidReducer, initialPidState } from './slices/pidSlice'
+import { uiReducer, initialUiState } from './slices/uiSlice'
 
 const StoreContext = createContext()
 
@@ -9,6 +10,7 @@ const initialState = {
   serial: initialSerialState,
   chart: initialChartState,
   pid: initialPidState,
+  ui: initialUiState,
 }
 
 function rootReducer(state, action) {
@@ -16,6 +18,7 @@ function rootReducer(state, action) {
     serial: serialReducer(state.serial, action),
     chart: chartReducer(state.chart, action),
     pid: pidReducer(state.pid, action),
+    ui: uiReducer(state.ui, action),
   }
 }
 

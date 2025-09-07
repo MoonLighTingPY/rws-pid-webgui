@@ -8,7 +8,7 @@ import math
 # === Settings ===
 PORT = "COM7"
 BAUD = 115200
-DT = 0.01  # 100 Hz
+DT = 0.005  # 100 Hz
 
 # === State ===
 streaming = False
@@ -80,38 +80,36 @@ def update_imu_angles():
     
     t = timestamp / 1000.0
     
-    # Simulate realistic drone/vehicle movement with some physics
+    # Increased base movement amplitudes for larger overall motion
+    base_pitch = 25.0 * math.sin(0.2 * t)  # larger slow oscillation
+    base_roll = 20.0 * math.cos(0.17 * t)  # larger slow oscillation
     
-    # Base movement patterns
-    base_pitch = 10.0 * math.sin(0.3 * t)  # Slow oscillation
-    base_roll = 8.0 * math.cos(0.25 * t)   # Slightly different frequency
+    # Stronger turbulence to create more visible variation
+    turbulence_pitch = 5.0 * math.sin(2.0 * t) + 2.5 * math.sin(5.0 * t)
+    turbulence_roll = 4.0 * math.cos(2.2 * t) + 1.8 * math.sin(4.8 * t)
     
-    # Add some turbulence/disturbances
-    turbulence_pitch = 2.0 * math.sin(2.0 * t) + 1.0 * math.sin(5.0 * t)
-    turbulence_roll = 1.5 * math.cos(2.2 * t) + 0.8 * math.sin(4.8 * t)
-    
-    # Occasional "maneuvers" - sharp changes
-    maneuver_time = int(t / 15) * 15  # Every 15 seconds
-    maneuver_progress = (t - maneuver_time) / 2.0  # 2 second maneuver
+    # More frequent and stronger maneuvers
+    maneuver_time = int(t / 12) * 12  # every 12 seconds
+    maneuver_progress = (t - maneuver_time) / 2.0  # 2 second maneuver window
     
     if maneuver_progress < 1.0:
-        # Sigmoid function for smooth maneuver
+        # Sigmoid for smooth onset/offset, larger peak amplitudes
         maneuver_factor = 1.0 / (1.0 + math.exp(-10 * (maneuver_progress - 0.5)))
-        maneuver_pitch = 25.0 * maneuver_factor * math.sin(math.pi * maneuver_progress)
-        maneuver_roll = 20.0 * maneuver_factor * math.cos(math.pi * maneuver_progress)
+        maneuver_pitch = 45.0 * maneuver_factor * math.sin(math.pi * maneuver_progress)
+        maneuver_roll = 35.0 * maneuver_factor * math.cos(math.pi * maneuver_progress)
     else:
         maneuver_pitch = 0.0
         maneuver_roll = 0.0
     
-    # Target angles
+    # Target angles combine base, turbulence and maneuvers
     target_pitch = base_pitch + turbulence_pitch + maneuver_pitch
     target_roll = base_roll + turbulence_roll + maneuver_roll
     
-    # Apply some inertia (angles don't change instantly)
-    damping = 0.95
-    spring_constant = 8.0
+    # Reduced damping and stronger spring constant -> reach targets faster / larger swings
+    damping = 0.92
+    spring_constant = 12.0
     
-    # Simple physics: acceleration towards target with damping
+    # Acceleration towards target with damping
     pitch_error = target_pitch - pitch_angle
     roll_error = target_roll - roll_angle
     
@@ -122,9 +120,9 @@ def update_imu_angles():
     pitch_angle += angle_velocity_pitch * DT
     roll_angle += angle_velocity_roll * DT
     
-    # Add some noise
-    pitch_angle += random.gauss(0, 0.1)
-    roll_angle += random.gauss(0, 0.1)
+    # Slightly increased noise for realism
+    pitch_angle += random.gauss(0, 0.4)
+    roll_angle += random.gauss(0, 0.4)
     
     # Clamp to realistic range (-180 to 180)
     pitch_angle = max(-180.0, min(180.0, pitch_angle))
