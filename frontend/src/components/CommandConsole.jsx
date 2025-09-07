@@ -156,15 +156,15 @@ export default function CommandConsole() {
   return (
     <Box 
       className="command-console" 
-      p={4} 
-      bg="white" 
-      borderRadius="xl" 
-      shadow="lg" 
+      p={3}
+      bg="gray.50" 
+      borderRadius="lg" 
       border="1px" 
-      borderColor="gray.100"
+      borderColor="gray.200"
       h="100%"
       display="flex"
       flexDirection="column"
+      minW="0"             // defensive
     >
       <VStack align="stretch" spacing={3} h="100%">
         

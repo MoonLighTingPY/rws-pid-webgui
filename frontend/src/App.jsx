@@ -1,39 +1,46 @@
-import './App.css'
-import { Box, Container, Grid, GridItem } from '@chakra-ui/react'
+import { useStore } from './store'
+import CanvasToggle from './components/CanvasToggle'
+import RightPanel from './components/RightPanel'
+import { Box, Container, HStack } from '@chakra-ui/react'
 import ChartArea from './components/ChartArea.jsx'
-import PIDControls from './components/PIDControls.jsx'
-import CommandConsole from './components/CommandConsole.jsx'
-import SerialControls from './components/SerialControls.jsx'
+import './App.css'
 
-function App() {
+export default function App() {
+  const { state } = useStore()
+  const showPanels = !state.ui.isCanvasMode
+
   return (
     <Box h="100vh" bg="gray.50" overflow="hidden">
       <Container maxW="full" p={3} h="100%">
-        <Grid 
-          templateRows="1fr auto" 
-          templateColumns="3.5fr 1fr" 
-          gap={3} 
-          h="100%"
-        >
-          {/* Chart Area - Main content */}
-          <GridItem rowSpan={1} colSpan={1} minH="0">
+        <HStack spacing={showPanels ? 3 : 0} h="100%" align="stretch">
+          {/* Left: charts - takes remaining space */}
+          <Box 
+            flex="1" 
+            minH="0" 
+            minW="0"                // allow shrink when right panel returns
+            position="relative"
+            pr={showPanels ? 0 : '1.5rem'} // leave room for the toggle when panels are hidden
+            transition="all 300ms ease"    // animate shrink
+          >
             <ChartArea />
-          </GridItem>
+            {/* Show toggle button only when panels are hidden */}
+            {!showPanels && <CanvasToggle />}
+          </Box>
 
-          <GridItem rowSpan={2} colSpan={1} minH="0">
-            <Box display="flex" flexDirection="column" gap={3} h="100%" minH="0">
-              <SerialControls />
-              <PIDControls />
-              <Box flex="2" minH="0">
-                <CommandConsole />
-              </Box>
-            </Box>
-          </GridItem>
-
-        </Grid>
+          {/* Right: panels - animate width instead of conditional removal */}
+          <Box 
+            flexShrink={0} 
+            minH="0"
+            // Animate width so left side shrinks smoothly.
+            w={showPanels ? "22rem" : "0"}
+            minW={showPanels ? "22rem" : "0"}
+            transition="width 300ms ease, min-width 300ms ease"
+            overflow="visible"   // allow the toggle button to sit outside the collapsed panel
+          >
+            <RightPanel isOpen={showPanels} />
+          </Box>
+        </HStack>
       </Container>
     </Box>
   )
 }
-
-export default App

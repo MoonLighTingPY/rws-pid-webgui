@@ -1,11 +1,11 @@
 .chart-area {
-  min-height: 600px;
+  min-height: 38rem; /* relative min-height */
 }
 
 .chart-container {
   border-radius: 8px;
   background: #fafafa;
-  padding: 16px;
+  padding: 1rem; /* relative padding */
 }
 
 .chart-area .recharts-cartesian-grid-horizontal line,
@@ -14,5 +14,5 @@
 }
 
 .chart-area .recharts-legend-wrapper {
-  padding-top: 16px;
+  padding-top: 1rem;
 }

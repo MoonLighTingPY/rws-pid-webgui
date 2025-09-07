@@ -1,5 +1,5 @@
 .serial-controls {
-  min-width: 280px;
+  min-width: 18rem; /* use relative rem unit instead of px */
 }
 
 .serial-controls .chakra-select {
