@@ -19,7 +19,7 @@ export default function App() {
             minH="0" 
             minW="0"                // allow shrink when right panel returns
             position="relative"
-            pr={showPanels ? 0 : '1.5rem'} // leave room for the toggle when panels are hidden
+            pr={showPanels ? 0 : '1.75rem'} // leave a little more room for the slightly wider toggle
             transition="all 300ms ease"    // animate shrink
           >
             <ChartArea />
@@ -32,8 +32,8 @@ export default function App() {
             flexShrink={0} 
             minH="0"
             // Animate width so left side shrinks smoothly.
-            w={showPanels ? "22rem" : "0"}
-            minW={showPanels ? "22rem" : "0"}
+            w={showPanels ? "28rem" : "0"}
+            minW={showPanels ? "28rem" : "0"}
             transition="width 300ms ease, min-width 300ms ease"
             overflow="visible"   // allow the toggle button to sit outside the collapsed panel
           >

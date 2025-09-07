@@ -7,9 +7,10 @@ import {
   Input, // Change from NumberInput to Input
   useToast,
   Divider,
-  Icon
+  Icon,
+  IconButton
 } from '@chakra-ui/react'
-import { FiSettings, FiDownload, FiUpload } from 'react-icons/fi'
+import { FiRefreshCw, FiCheck } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/PIDControls.css'
@@ -171,36 +172,32 @@ export default function PIDControls() {
       minW="0"             // defensive
     >
       <VStack spacing={3} align="stretch" h="100%">
-        <HStack justify="space-between" align="center" flexShrink={0}>
-          <Text fontWeight="600" fontSize="md" color="gray.700">PID Coefficients</Text>
-          <Icon as={FiSettings} color="gray.500" boxSize={4} />
-        </HStack>
-
-        <Divider />
+        {/* Removed panel title/icon per request */}
         
-        {/* PID Input Fields in a row */}
-        <VStack spacing={2} align="stretch" flex="1">
-          <HStack spacing={2}>
-            <Box flex="1">
-              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">P</Text>
+        {/* PID Inputs + actions inline */}
+        <HStack spacing={2} align="end">
+          {/* PID Inputs */}
+          <Box flex="1">
+            <HStack spacing={2} align="center">
+              <Text fontSize="xs" fontWeight="medium" color="gray.500" minW="1rem" textAlign="center">P</Text>
               <Input
                 value={pInput}
                 onChange={(e) => handleInputChange(e.target.value, setPInput, 'PID_SET_P')}
                 onBlur={(e) => handleInputBlur(e.target.value, setPInput, 'PID_SET_P')}
-                textAlign="center" 
+                textAlign="center"
                 borderColor="gray.300"
                 _hover={{ borderColor: "gray.400" }}
                 _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
+                flex="1"
               />
-              <Box minH="18px" mt={1} textAlign="center">
-                {!pValid && <Text color="red.500" fontSize="xs">P value incorrect</Text>}
-              </Box>
-            </Box>
-            <Box flex="1">
-              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">I</Text>
+            </HStack>
+          </Box>
+          <Box flex="1">
+            <HStack spacing={2} align="center">
+              <Text fontSize="xs" fontWeight="medium" color="gray.500" minW="1rem" textAlign="center">I</Text>
               <Input
                 value={iInput}
                 onChange={(e) => handleInputChange(e.target.value, setIInput, 'PID_SET_I')}
@@ -212,13 +209,13 @@ export default function PIDControls() {
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
+                flex="1"
               />
-              <Box minH="18px" mt={1} textAlign="center">
-                {!iValid && <Text color="red.500" fontSize="xs">I value incorrect</Text>}
-              </Box>
-            </Box>
-            <Box flex="1">
-              <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.500" textAlign="center">D</Text>
+            </HStack>
+          </Box>
+          <Box flex="1">
+            <HStack spacing={2} align="center">
+              <Text fontSize="xs" fontWeight="medium" color="gray.500" minW="1rem" textAlign="center">D</Text>
               <Input
                 value={dInput}
                 onChange={(e) => handleInputChange(e.target.value, setDInput, 'PID_SET_D')}
@@ -230,46 +227,38 @@ export default function PIDControls() {
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
+                flex="1"
               />
-              <Box minH="18px" mt={1} textAlign="center">
-                {!dValid && <Text color="red.500" fontSize="xs">D value incorrect</Text>}
-              </Box>
-            </Box>
+            </HStack>
+          </Box>
+          {/* Inline action buttons */}
+          <HStack spacing={2} flexShrink={0} align="end">
+            <IconButton
+              aria-label="Refresh PID"
+              onClick={handleGet}
+              size="sm"
+              variant="outline"
+              minW="auto"
+              px={2}
+              borderColor="gray.300"
+              icon={<Icon as={FiRefreshCw} boxSize={3} />}
+              isDisabled={!state.serial.isConnected}
+            />
+            <IconButton
+              aria-label="Set PID"
+              onClick={handleSet}
+              size="sm"
+              colorScheme="blue"
+              icon={<Icon as={FiCheck} boxSize={3} />}
+              isDisabled={!state.serial.isConnected || !allValid}
+              _hover={{
+                transform: state.serial.isConnected && allValid ? "translateY(-1px)" : "none",
+                boxShadow: state.serial.isConnected && allValid ? "lg" : "none"
+              }}
+              transition="all 0.2s"
+            />
           </HStack>
-        </VStack>
-        
-        {/* Action Buttons */}
-        <VStack spacing={2} align="stretch" flexShrink={0}>
-          <Button 
-            colorScheme="blue" 
-            onClick={handleSet}
-            disabled={!state.serial.isConnected || !allValid}
-            size="sm"
-            leftIcon={<Icon as={FiUpload} boxSize={3} />}
-            _hover={{
-              transform: state.serial.isConnected && allValid ? "translateY(-1px)" : "none",
-              boxShadow: state.serial.isConnected && allValid ? "lg" : "none"
-            }}
-            transition="all 0.2s"
-          >
-            Set Values
-          </Button>
-          <Button 
-            colorScheme="green" 
-            onClick={handleGet}
-            disabled={!state.serial.isConnected}
-            size="sm"
-            variant="outline"
-            leftIcon={<Icon as={FiDownload} boxSize={3} />}
-            _hover={{
-              transform: state.serial.isConnected ? "translateY(-1px)" : "none",
-              boxShadow: state.serial.isConnected ? "md" : "none"
-            }}
-            transition="all 0.2s"
-          >
-            Get Values
-          </Button>
-        </VStack>
+        </HStack>
       </VStack>
     </Box>
   )

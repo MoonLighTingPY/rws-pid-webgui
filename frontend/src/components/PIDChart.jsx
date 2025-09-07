@@ -1,8 +1,8 @@
 // filepath: frontend/src/components/PIDChart.jsx
-import { Box, Text, IconButton } from '@chakra-ui/react'
-import { FiTrash2 }              from 'react-icons/fi'
-import { Line }                   from 'react-chartjs-2'
-import { useStore }               from '../store'
+import { Box, Text, IconButton, Icon } from '@chakra-ui/react'
+import { MdOutlineCleaningServices } from "react-icons/md";
+import { Line } from 'react-chartjs-2'
+import { useStore } from '../store'
 
 export default function PIDChart({ data, options }) {
   const { dispatch } = useStore()
@@ -22,12 +22,17 @@ export default function PIDChart({ data, options }) {
     >
       <IconButton
         aria-label="Clear PID data"
-        icon={<FiTrash2 />}
+        icon={<Icon as={MdOutlineCleaningServices} boxSize={4} />} // <-- Broom icon
         size="sm"
         position="absolute"
         top="0.5rem"
         right="0.5rem"
         onClick={() => dispatch({ type: 'CHART_CLEAR_PID_DATA' })}
+        bg="purple.500"
+        color="white"
+        _hover={{ bg: 'purple.600' }}
+        borderRadius="lg"
+        shadow="md"
       />
       <Text fontWeight="semibold" fontSize="xs" color="gray.500" mb={1}>
         PID Data
