@@ -8,9 +8,10 @@ import {
   useToast,
   HStack,
   Icon,
-  Divider
+  Divider,
+  IconButton
 } from '@chakra-ui/react'
-import { FiWifi, FiWifiOff, FiPlay, FiPause, FiRefreshCw } from 'react-icons/fi'
+import { FiLogIn, FiLogOut, FiRefreshCw } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/SerialControls.css'
@@ -120,6 +121,7 @@ export default function SerialControls() {
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: false })
         dispatch({ type: 'CHART_CLEAR_PID_DATA' })
         dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
+        dispatch({ type: 'CHART_SET_FREQUENCY', payload: 0 }) // <-- set frequency to 0
         if (eventSource) { eventSource.close(); setEventSource(null) }
         toast({ title: 'Disconnected', status: 'info', duration: 2000, isClosable: true })
       } catch {
@@ -135,6 +137,17 @@ export default function SerialControls() {
         await apiService.connect(state.serial.selectedPort)
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: true })
         dispatch({ type: 'SERIAL_SET_STREAMING', payload: false })
+        // Delay before sending 'pid show'
+        await new Promise(resolve => setTimeout(resolve, 300))
+        await apiService.sendCommand('pid show')
+        dispatch({
+          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+          payload: {
+            timestamp: Date.now(),
+            text: 'pid show',
+            type: 'sent'
+          }
+        })
         toast({ title: 'Connected', description: `Connected to ${state.serial.selectedPort}` , status: 'success', duration: 2000, isClosable: true })
       } catch {
         toast({ title: 'Error', description: 'Failed to connect to serial port', status: 'error', duration: 3000, isClosable: true })
@@ -142,24 +155,6 @@ export default function SerialControls() {
     }
   }
 
-  const handleStartStop = async () => {
-    if (!state.serial.isConnected) {
-      toast({ title: 'Error', description: 'Not connected to any port', status: 'error', duration: 3000, isClosable: true })
-      return
-    }
-    try {
-      const command = state.serial.isStreaming ? 'pid stream off' : 'pid stream on'
-      await apiService.sendCommand(command)
-      if (!state.serial.isStreaming) {
-        dispatch({ type: 'CHART_CLEAR_PID_DATA' })
-        dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
-      }
-      dispatch({ type: 'SERIAL_SET_STREAMING', payload: !state.serial.isStreaming })
-      dispatch({ type: 'SERIAL_ADD_CONSOLE_MESSAGE', payload: { timestamp: Date.now(), text: command, type: 'sent' } })
-    } catch {
-      toast({ title: 'Error', description: 'Failed to send command', status: 'error', duration: 3000, isClosable: true })
-    }
-  }
 
   return (
     <Box 
@@ -173,20 +168,10 @@ export default function SerialControls() {
       minW="0"              // defensive
     >
       <VStack spacing={3} align="stretch">
-        <HStack justify="space-between" align="center">
-          <Text fontWeight="600" fontSize="md" color="gray.700">Serial Connection</Text>
-          <Icon 
-            as={state.serial.isConnected ? FiWifi : FiWifiOff} 
-            color={state.serial.isConnected ? 'green.500' : 'gray.400'}
-            boxSize={4}
-          />
-        </HStack>
-
-        <Divider />
+        {/* Removed panel title/icon per request */}
         
         <VStack spacing={2} align="stretch">
           <Box>
-            <Text fontSize="xs" mb={1} fontWeight="medium" color="gray.600">COM Port</Text>
             <HStack spacing={2}>
               <Select
                 placeholder="Select COM port"
@@ -202,40 +187,31 @@ export default function SerialControls() {
               >
                 {state.serial.availablePorts.map(port => <option key={port} value={port}>{port}</option>)}
               </Select>
+
+              {/* Refresh button */}
               <Button onClick={loadPorts} size="sm" variant="outline" minW="auto" px={2} borderColor="gray.300">
                 <Icon as={FiRefreshCw} boxSize={3} />
               </Button>
+
+              {/* Connect icon button placed in same row */}
+              <IconButton
+                aria-label={state.serial.isConnected ? "Disconnect" : "Connect"}
+                onClick={handleConnect}
+                size="sm"
+                icon={<Icon as={state.serial.isConnected ? FiLogOut : FiLogIn} boxSize={3} />}
+                bg={state.serial.isConnected ? 'red.400' : 'green.400'}
+                _hover={{
+                  bg: state.serial.isConnected ? 'red.500' : 'green.500'
+                }}
+                isDisabled={!state.serial.selectedPort && !state.serial.isConnected}
+                variant="outline"
+                minW="auto"
+                px={2}
+                borderColor="gray.300"
+              />
             </HStack>
           </Box>
-
-          <Button
-            colorScheme={state.serial.isConnected ? 'red' : 'blue'}
-            onClick={handleConnect}
-            size="sm"
-            leftIcon={<Icon as={state.serial.isConnected ? FiWifiOff : FiWifi} boxSize={3} />}
-            _hover={{
-              transform: 'translateY(-1px)',
-              boxShadow: 'lg'
-            }}
-            transition="all 0.2s"
-          >
-            {state.serial.isConnected ? 'Disconnect' : 'Connect'}
-          </Button>
-
-          <Button
-            colorScheme={state.serial.isStreaming ? 'orange' : 'green'}
-            onClick={handleStartStop}
-            disabled={!state.serial.isConnected}
-            size="sm"
-            leftIcon={<Icon as={state.serial.isStreaming ? FiPause : FiPlay} boxSize={3} />}
-            _hover={{
-              transform: state.serial.isConnected ? 'translateY(-1px)' : 'none',
-              boxShadow: state.serial.isConnected ? 'lg' : 'none'
-            }}
-            transition="all 0.2s"
-          >
-            {state.serial.isStreaming ? 'Stop Streaming' : 'Start Streaming'}
-          </Button>
+          {/* Removed Start/Stop streaming button */}
         </VStack>
       </VStack>
     </Box>
