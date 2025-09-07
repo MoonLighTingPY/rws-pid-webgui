@@ -12,16 +12,31 @@ import serial
 import serial.tools.list_ports
 import os
 import sys
+from math import isfinite
+
+# Optional websocket support
+try:
+    from flask_sock import Sock
+except Exception:
+    Sock = None
 
 app = Flask(__name__)
 if CORS:
-    # allow cross-origin requests for development (including EventSource)
-    CORS(app, resources={r"/stream": {"origins": "*"}, r"/api/*": {"origins": "*"}})
+    CORS(app, resources={r"/stream": {"origins": "*"}, r"/api/*": {"origins": "*"}, r"/ws": {"origins": "*"}})
+
+if Sock:
+    sock = Sock(app)
+else:
+    sock = None
 
 # When packaged by PyInstaller, data files are extracted to sys._MEIPASS.
-# Use that location if present so the packaged executable can serve built frontend files.
 BASE_DIR = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
-WEB_DIR = os.path.join(BASE_DIR, "web")  # populated by build.bat / included in bundle
+WEB_DIR = os.path.join(BASE_DIR, "web")  # populated by build script / included in bundle
+
+# Binary packet layout (little-endian):
+# uint32 timestamp, float setpoint, float pitch, float error, float pitch_angle, float roll_angle, uint8 end ('\n')
+PACKET_SIZE = 25
+PACKET_STRUCT = struct.Struct("<IfffffB")
 
 class SerialService:
     def __init__(self):
@@ -29,11 +44,13 @@ class SerialService:
         self.thread = None
         self.running = False
         self.q = queue.Queue()
+        self.packet_counter = 0
+        self.last_freq_time = time.time()
 
     def connect(self, port, baud=115200):
         if self.ser and self.ser.is_open:
             self.disconnect()
-        self.ser = serial.Serial(port, baud, timeout=0.1)
+        self.ser = serial.Serial(port, baud, timeout=0.05)
         self.running = True
         self.thread = threading.Thread(target=self.read_loop, daemon=True)
         self.thread.start()
@@ -57,47 +74,79 @@ class SerialService:
         payload = cmd.strip() + "\n"
         self.ser.write(payload.encode())
 
+    def _emit_frequency_if_needed(self):
+        now = time.time()
+        elapsed = now - self.last_freq_time
+        if elapsed >= 1.0:
+            freq = self.packet_counter / elapsed if elapsed > 0 else 0.0
+            self.q.put({"type": "freq", "value": freq})
+            self.packet_counter = 0
+            self.last_freq_time = now
+
     def read_loop(self):
         buf = bytearray()
         while self.running and self.ser and self.ser.is_open:
             try:
-                n = self.ser.in_waiting
+                available = self.ser.in_waiting
             except Exception:
-                n = 0
-            if n:
-                chunk = self.ser.read(n)
+                available = 0
+            if available:
+                chunk = self.ser.read(available)
                 buf.extend(chunk)
-
-                # parse as many messages as possible
+                # Parse packets / lines
                 while True:
-                    # Check for binary packet (17 bytes, last byte == 10)
-                    if len(buf) >= 17 and buf[16] == 10:
-                        pkt = bytes(buf[:17])
-                        del buf[:17]
+                    # Binary packet
+                    if len(buf) >= PACKET_SIZE and buf[PACKET_SIZE - 1] == 0x0A:  # '\n'
+                        raw_pkt = bytes(buf[:PACKET_SIZE])
+                        del buf[:PACKET_SIZE]
                         try:
-                            ts, sp, pitch, err, endb = struct.unpack("<IfffB", pkt)
-                            self.q.put({"type": "chart", "timestamp": ts, "setpoint": sp, "pitch": pitch, "error": err})
+                            ts, setpoint, pitch, error, pitch_ang, roll_ang, endb = PACKET_STRUCT.unpack(raw_pkt)
+                            # Basic sanity check
+                            if not all(isfinite(v) for v in (setpoint, pitch, error, pitch_ang, roll_ang)):
+                                raise ValueError("non-finite values")
+                            # Enqueue separate logical messages
+                            self.q.put({
+                                "type": "pid",
+                                "timestamp": ts,
+                                "setpoint": setpoint,
+                                "pitch": pitch,
+                                "error": error
+                            })
+                            self.q.put({
+                                "type": "angle",
+                                "timestamp": ts,
+                                "pitch_angle": pitch_ang,
+                                "roll_angle": roll_ang
+                            })
+                            self.packet_counter += 1
+                            self._emit_frequency_if_needed()
                             continue
                         except Exception:
-                            # fallthrough to text parsing
+                            # Fall through to attempt text parsing
                             pass
-
-                    # Check for text line
-                    if b"\n" in buf:
-                        line, rest = buf.split(b"\n", 1)
-                        del buf[: len(line) + 1]
+                    # Text line
+                    nl_index = buf.find(b"\n")
+                    if nl_index != -1:
+                        line = bytes(buf[:nl_index])
+                        del buf[: nl_index + 1]
                         try:
                             text = line.decode(errors="replace")
                         except Exception:
                             text = "<decode error>"
-                        self.q.put({"type": "console", "text": text})
+                        if text:
+                            self.q.put({"type": "console", "text": text})
                         continue
-
                     break
             else:
                 time.sleep(0.01)
-
-        # on exit, notify clients
+        # Drain remaining partial text (optional)
+        if buf:
+            try:
+                text = buf.decode(errors="replace")
+                if text:
+                    self.q.put({"type": "console", "text": text})
+            except Exception:
+                pass
         self.q.put({"type": "console", "text": "serial: disconnected"})
 
 serial_service = SerialService()
@@ -136,7 +185,7 @@ def api_connect():
         serial_service.connect(port, baud)
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e) or type(e).__name__}), 500
 
 @app.route("/api/disconnect", methods=["POST"])
 def api_disconnect():
@@ -151,15 +200,15 @@ def api_send():
         serial_service.send(cmd)
         return jsonify({"ok": True})
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": str(e) or type(e).__name__}), 500
 
+# Legacy SSE endpoint (kept for backward compatibility)
 @app.route("/stream")
 def stream():
     def event_stream():
         while True:
             item = serial_service.q.get()
             yield "data: " + json.dumps(item) + "\n\n"
-
     headers = {
         "Cache-Control": "no-cache",
         "Connection": "keep-alive",
@@ -167,19 +216,22 @@ def stream():
         "Access-Control-Allow-Headers": "Content-Type",
         "Access-Control-Allow-Methods": "GET",
     }
+    return Response(stream_with_context(event_stream()), mimetype="text/event-stream", headers=headers)
 
-    return Response(
-        stream_with_context(event_stream()),
-        mimetype="text/event-stream",
-        headers=headers
-    )
+# WebSocket endpoint
+if sock:
+    @sock.route('/ws')
+    def ws(ws):  # type: ignore
+        while True:
+            item = serial_service.q.get()
+            try:
+                ws.send(json.dumps(item))
+            except Exception:
+                break
 
 if __name__ == "__main__":
-    # Development run (when not packaged). Ensure WEB_DIR points to local web folder.
     if not os.path.isdir(WEB_DIR):
         BASE_DIR = os.path.dirname(__file__)
         WEB_DIR = os.path.join(BASE_DIR, "web")
-
-    # Run Flask dev server on port 5000
     print("Starting backend on http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, threaded=True)
