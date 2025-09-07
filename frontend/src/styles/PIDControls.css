@@ -1,5 +1,6 @@
 .pid-controls {
   min-width: 18rem; /* use relative rem unit instead of px */
+  margin-bottom: 0.25rem; /* small gap between stacked panels */
 }
 
 .pid-controls .chakra-numberinput {

@@ -6,6 +6,7 @@ import AngleChart from './AngleChart'
 import AngleGauges from './AngleGauges'
 import PIDChart from './PIDChart'
 import { createChartOptions } from './chartOptions' // you can extract your createChartOptions
+import StreamingToggle from './StreamingToggle'
 
 export default function ChartArea() {
   const { state, dispatch } = useStore()
@@ -101,19 +102,33 @@ export default function ChartArea() {
               {state.chart.packetFrequency.toFixed(0)} Hz
             </Badge>
           </HStack>
-          <Slider
-            value={state.chart.timeWindow}
-            onChange={handleTimeWindowChange}
-            min={10}
-            max={60}
-            step={5}
-            colorScheme="blue"
-          >
-            <SliderTrack bg="gray.200">
-              <SliderFilledTrack />
-            </SliderTrack>
-            <SliderThumb boxSize={4} />
-          </Slider>
+
+          {/* Slider row with StreamingToggle to the right */}
+          <HStack spacing={3} align="center">
+            <Box flex="1">
+              <Slider
+                value={state.chart.timeWindow}
+                onChange={handleTimeWindowChange}
+                min={10}
+                max={60}
+                step={5}
+                colorScheme="blue"
+              >
+                <SliderTrack bg="gray.200">
+                  <SliderFilledTrack />
+                </SliderTrack>
+                <SliderThumb boxSize={4} />
+              </Slider>
+            </Box>
+
+            {/* Toggle placed to the right of the slider.
+                - height approximates the slider row (aligned center)
+                - width follows the angle-gauges padding scale */
+            }
+            <Box align="center" display="flex" alignItems="center" justifyContent="center" h="40px" w={{ base: '2.5rem', md: '3rem' }}>
+              <StreamingToggle onClick={() => { /* noop for now — not wired */ }} />
+            </Box>
+          </HStack>
         </Box>
 
         {/* top row: angle chart + gauges */}

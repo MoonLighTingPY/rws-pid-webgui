@@ -50,7 +50,6 @@ export default function RightPanel({ isOpen = true }) {
         flexDirection="column" 
         p={4}
         minH="0"
-        // Keep inner content sized for open state, but allow parent to clip when closed.
         width="22rem"
         opacity={isOpen ? 1 : 0}
         transform={isOpen ? 'translateX(0)' : 'translateX(8px)'}
