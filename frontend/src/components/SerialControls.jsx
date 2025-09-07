@@ -44,37 +44,51 @@ export default function SerialControls() {
   useEffect(() => {
     if (state.serial.isConnected && !eventSource) {
       const es = apiService.createEventSource()
-      
+
       es.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data)
-          
-          if (data.type === 'chart') {
-            if (state.serial.isStreaming) {
-              dispatch({
-                type: 'CHART_ADD_DATA',
-                payload: {
-                  timestamp: data.timestamp,
-                  setpoint: data.setpoint,
-                  pitch: data.pitch,
-                  error: data.error
-                }
-              })
-            } else {
-              // drop binary/chart data when not streaming
-            }
-          } else if (data.type === 'console') {
-            dispatch({
-              type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-              payload: {
-                timestamp: Date.now(),
-                text: data.text,
-                type: 'received'
+          if (!data.type) return
+          switch (data.type) {
+            case 'pid':
+              if (state.serial.isStreaming) {
+                dispatch({
+                  type: 'CHART_ADD_PID_DATA',
+                  payload: {
+                    timestamp: data.timestamp,
+                    setpoint: data.setpoint,
+                    pitch: data.pitch,
+                    error: data.error,
+                  }
+                })
               }
-            })
+              break
+            case 'angle':
+              if (state.serial.isStreaming) {
+                dispatch({
+                  type: 'CHART_ADD_ANGLE_DATA',
+                  payload: {
+                    timestamp: data.timestamp,
+                    pitch_angle: data.pitch_angle,
+                    roll_angle: data.roll_angle,
+                  }
+                })
+              }
+              break
+            case 'freq':
+              dispatch({ type: 'CHART_SET_FREQUENCY', payload: data.value })
+              break
+            case 'console':
+              dispatch({
+                type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+                payload: { timestamp: Date.now(), text: data.text, type: 'received' }
+              })
+              break
+            default:
+              break
           }
-        } catch {
-          console.error('Error parsing event data')
+        } catch (e) {
+          console.error('Error parsing event data', e)
         }
       }
 
@@ -86,14 +100,13 @@ export default function SerialControls() {
 
       setEventSource(es)
     }
-
     return () => {
       if (eventSource) {
         eventSource.close()
         setEventSource(null)
       }
     }
-  }, [state.serial.isConnected, eventSource, dispatch, state.serial.isStreaming])
+  }, [state.serial.isConnected, state.serial.isStreaming, eventSource, dispatch])
 
   const handleConnect = async () => {
     if (state.serial.isConnected) {
@@ -105,104 +118,46 @@ export default function SerialControls() {
         }
         await apiService.disconnect()
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: false })
-        dispatch({ type: 'CHART_CLEAR_DATA' })
-        if (eventSource) {
-          eventSource.close()
-          setEventSource(null)
-        }
-        toast({
-          title: 'Disconnected',
-          status: 'info',
-          duration: 2000,
-          isClosable: true,
-        })
+        dispatch({ type: 'CHART_CLEAR_PID_DATA' })
+        dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
+        if (eventSource) { eventSource.close(); setEventSource(null) }
+        toast({ title: 'Disconnected', status: 'info', duration: 2000, isClosable: true })
       } catch {
-        toast({
-          title: 'Error',
-          description: 'Failed to disconnect',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        })
+        toast({ title: 'Error', description: 'Failed to disconnect', status: 'error', duration: 3000, isClosable: true })
       }
     } else {
       // Connect
       if (!state.serial.selectedPort) {
-        toast({
-          title: 'Error',
-          description: 'Please select a COM port',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        })
+        toast({ title: 'Error', description: 'Please select a COM port', status: 'error', duration: 3000, isClosable: true })
         return
       }
-
       try {
         await apiService.connect(state.serial.selectedPort)
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: true })
-
-        // Ensure UI streaming flag is false on connect (require user to press Start)
         dispatch({ type: 'SERIAL_SET_STREAMING', payload: false })
-
-        toast({
-          title: 'Connected',
-          description: `Connected to ${state.serial.selectedPort}`,
-          status: 'success',
-          duration: 2000,
-          isClosable: true,
-        })
+        toast({ title: 'Connected', description: `Connected to ${state.serial.selectedPort}` , status: 'success', duration: 2000, isClosable: true })
       } catch {
-        toast({
-          title: 'Error',
-          description: 'Failed to connect to serial port',
-          status: 'error',
-          duration: 3000,
-          isClosable: true,
-        })
+        toast({ title: 'Error', description: 'Failed to connect to serial port', status: 'error', duration: 3000, isClosable: true })
       }
     }
   }
 
   const handleStartStop = async () => {
     if (!state.serial.isConnected) {
-      toast({
-        title: 'Error',
-        description: 'Not connected to any port',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
+      toast({ title: 'Error', description: 'Not connected to any port', status: 'error', duration: 3000, isClosable: true })
       return
     }
-
     try {
       const command = state.serial.isStreaming ? 'pid stream off' : 'pid stream on'
       await apiService.sendCommand(command)
-
-      // Clear chart data when starting streaming
       if (!state.serial.isStreaming) {
-        dispatch({ type: 'CHART_CLEAR_DATA' })
+        dispatch({ type: 'CHART_CLEAR_PID_DATA' })
+        dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
       }
-
       dispatch({ type: 'SERIAL_SET_STREAMING', payload: !state.serial.isStreaming })
-      
-      dispatch({
-        type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-        payload: {
-          timestamp: Date.now(),
-          text: command,
-          type: 'sent'
-        }
-      })
+      dispatch({ type: 'SERIAL_ADD_CONSOLE_MESSAGE', payload: { timestamp: Date.now(), text: command, type: 'sent' } })
     } catch {
-      toast({
-        title: 'Error',
-        description: 'Failed to send command',
-        status: 'error',
-        duration: 3000,
-        isClosable: true,
-      })
+      toast({ title: 'Error', description: 'Failed to send command', status: 'error', duration: 3000, isClosable: true })
     }
   }
 
@@ -222,7 +177,7 @@ export default function SerialControls() {
           <Text fontWeight="600" fontSize="md" color="gray.700">Serial Connection</Text>
           <Icon 
             as={state.serial.isConnected ? FiWifi : FiWifiOff} 
-            color={state.serial.isConnected ? "green.500" : "gray.400"}
+            color={state.serial.isConnected ? 'green.500' : 'gray.400'}
             boxSize={4}
           />
         </HStack>
@@ -240,57 +195,46 @@ export default function SerialControls() {
                 disabled={state.serial.isConnected}
                 bg="white"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 flex="1"
                 size="sm"
               >
-                {state.serial.availablePorts.map((port) => (
-                  <option key={port} value={port}>
-                    {port}
-                  </option>
-                ))}
+                {state.serial.availablePorts.map(port => <option key={port} value={port}>{port}</option>)}
               </Select>
-              <Button 
-                onClick={loadPorts} 
-                size="sm" 
-                variant="outline"
-                minW="auto"
-                px={2}
-                borderColor="gray.300"
-              >
+              <Button onClick={loadPorts} size="sm" variant="outline" minW="auto" px={2} borderColor="gray.300">
                 <Icon as={FiRefreshCw} boxSize={3} />
               </Button>
             </HStack>
           </Box>
 
           <Button
-            colorScheme={state.serial.isConnected ? "red" : "blue"}
+            colorScheme={state.serial.isConnected ? 'red' : 'blue'}
             onClick={handleConnect}
             size="sm"
             leftIcon={<Icon as={state.serial.isConnected ? FiWifiOff : FiWifi} boxSize={3} />}
             _hover={{
-              transform: "translateY(-1px)",
-              boxShadow: "lg"
+              transform: 'translateY(-1px)',
+              boxShadow: 'lg'
             }}
             transition="all 0.2s"
           >
-            {state.serial.isConnected ? "Disconnect" : "Connect"}
+            {state.serial.isConnected ? 'Disconnect' : 'Connect'}
           </Button>
 
           <Button
-            colorScheme={state.serial.isStreaming ? "orange" : "green"}
+            colorScheme={state.serial.isStreaming ? 'orange' : 'green'}
             onClick={handleStartStop}
             disabled={!state.serial.isConnected}
             size="sm"
             leftIcon={<Icon as={state.serial.isStreaming ? FiPause : FiPlay} boxSize={3} />}
             _hover={{
-              transform: state.serial.isConnected ? "translateY(-1px)" : "none",
-              boxShadow: state.serial.isConnected ? "lg" : "none"
+              transform: state.serial.isConnected ? 'translateY(-1px)' : 'none',
+              boxShadow: state.serial.isConnected ? 'lg' : 'none'
             }}
             transition="all 0.2s"
           >
-            {state.serial.isStreaming ? "Stop Streaming" : "Start Streaming"}
+            {state.serial.isStreaming ? 'Stop Streaming' : 'Start Streaming'}
           </Button>
         </VStack>
       </VStack>
