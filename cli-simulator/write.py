@@ -3,6 +3,7 @@ import time
 import random
 import serial
 import threading
+import math
 
 # === Settings ===
 PORT = "COM7"
@@ -22,6 +23,12 @@ pitch = 0.0
 pitch_rate = 0.0
 integral = 0.0
 last_error = 0.0
+
+# IMU angles state
+pitch_angle = 0.0
+roll_angle = 0.0
+angle_velocity_pitch = 0.0
+angle_velocity_roll = 0.0
 
 # === Serial setup ===
 ser = serial.Serial(PORT, BAUD, timeout=1, write_timeout=1)
@@ -67,13 +74,86 @@ def update_system():
     return setpoint, pitch, error
 
 
+def update_imu_angles():
+    """Simulate realistic IMU angle changes"""
+    global pitch_angle, roll_angle, angle_velocity_pitch, angle_velocity_roll
+    
+    t = timestamp / 1000.0
+    
+    # Simulate realistic drone/vehicle movement with some physics
+    
+    # Base movement patterns
+    base_pitch = 10.0 * math.sin(0.3 * t)  # Slow oscillation
+    base_roll = 8.0 * math.cos(0.25 * t)   # Slightly different frequency
+    
+    # Add some turbulence/disturbances
+    turbulence_pitch = 2.0 * math.sin(2.0 * t) + 1.0 * math.sin(5.0 * t)
+    turbulence_roll = 1.5 * math.cos(2.2 * t) + 0.8 * math.sin(4.8 * t)
+    
+    # Occasional "maneuvers" - sharp changes
+    maneuver_time = int(t / 15) * 15  # Every 15 seconds
+    maneuver_progress = (t - maneuver_time) / 2.0  # 2 second maneuver
+    
+    if maneuver_progress < 1.0:
+        # Sigmoid function for smooth maneuver
+        maneuver_factor = 1.0 / (1.0 + math.exp(-10 * (maneuver_progress - 0.5)))
+        maneuver_pitch = 25.0 * maneuver_factor * math.sin(math.pi * maneuver_progress)
+        maneuver_roll = 20.0 * maneuver_factor * math.cos(math.pi * maneuver_progress)
+    else:
+        maneuver_pitch = 0.0
+        maneuver_roll = 0.0
+    
+    # Target angles
+    target_pitch = base_pitch + turbulence_pitch + maneuver_pitch
+    target_roll = base_roll + turbulence_roll + maneuver_roll
+    
+    # Apply some inertia (angles don't change instantly)
+    damping = 0.95
+    spring_constant = 8.0
+    
+    # Simple physics: acceleration towards target with damping
+    pitch_error = target_pitch - pitch_angle
+    roll_error = target_roll - roll_angle
+    
+    angle_velocity_pitch = angle_velocity_pitch * damping + pitch_error * spring_constant * DT
+    angle_velocity_roll = angle_velocity_roll * damping + roll_error * spring_constant * DT
+    
+    # Update angles
+    pitch_angle += angle_velocity_pitch * DT
+    roll_angle += angle_velocity_roll * DT
+    
+    # Add some noise
+    pitch_angle += random.gauss(0, 0.1)
+    roll_angle += random.gauss(0, 0.1)
+    
+    # Clamp to realistic range (-180 to 180)
+    pitch_angle = max(-180.0, min(180.0, pitch_angle))
+    roll_angle = max(-180.0, min(180.0, roll_angle))
+    
+    return pitch_angle, roll_angle
+
 
 def send_packet():
-    """Send one binary data packet according to struct format"""
+    """Send one binary data packet according to new struct format"""
     global timestamp
+    
+    # Update PID system
     sp, pv, err = update_system()
-
-    packet = struct.pack("<IfffB", timestamp, sp, pv, err, 10)  # '\n'
+    
+    # Update IMU angles
+    pa, ra = update_imu_angles()
+    
+    # Pack according to new structure:
+    # uint32_t timestamp
+    # struct pid { float setpoint, pitch, error }
+    # struct angle { float pitch_angle, roll_angle }
+    # uint8_t end
+    packet = struct.pack("<I fff ff B", 
+                        timestamp,      # timestamp
+                        sp, pv, err,    # pid struct
+                        pa, ra,         # angle struct
+                        10)             # end ('\n')
+    
     try:
         ser.write(packet)
     except serial.SerialTimeoutException:
@@ -95,33 +175,33 @@ def cli_pid(argv):
         coef, val = argv[1].lower(), argv[2]
         if coef in pid and _is_float(val):
             pid[coef] = float(val)
-            ser.write(f"Set {coef.upper()} = {val}\n".encode())
+            ser.write(f"{COLORS['INFO']}Set {coef.upper()} = {val}{COLORS['RESET']}\n".encode())
         else:
-            ser.write(b"Invalid value\n")
+            ser.write(f"{COLORS['ERROR']}Invalid value{COLORS['RESET']}\n".encode())
 
     elif cmd == "get" and len(argv) == 2:
         coef = argv[1].lower()
         if coef in pid:
-            ser.write(f"{coef.upper()} = {pid[coef]:.2f}\n".encode())
+            ser.write(f"{COLORS['INFO']}{coef.upper()} = {pid[coef]:.2f}{COLORS['RESET']}\n".encode())
         else:
-            ser.write(b"Unknown coefficient\n")
+            ser.write(f"{COLORS['ERROR']}Unknown coefficient{COLORS['RESET']}\n".encode())
 
     elif cmd == "show":
-        msg = f"P: {pid['p']:4.2f}, I: {pid['i']:4.2f}, D: {pid['d']:4.2f}\n"
+        msg = f"{COLORS['INFO']}P: {pid['p']:4.2f}, I: {pid['i']:4.2f}, D: {pid['d']:4.2f}{COLORS['RESET']}\n"
         ser.write(msg.encode())
 
     elif cmd == "stream" and len(argv) == 2:
         if argv[1].lower() == "on":
             streaming = True
-            ser.write(b"Streaming ON\n")
+            ser.write(f"{COLORS['INFO']}Streaming ON{COLORS['RESET']}\n".encode())
         elif argv[1].lower() == "off":
             streaming = False
-            ser.write(b"Streaming OFF\n")
+            ser.write(f"{COLORS['WARN']}Streaming OFF{COLORS['RESET']}\n".encode())
         else:
             ser.write(b"Usage: pid stream [on|off]\n")
 
     else:
-        ser.write(b"ERR: unknown pid command\n")
+        ser.write(f"{COLORS['ERROR']}ERR: unknown pid command{COLORS['RESET']}\n".encode())
 
 
 def _is_float(s: str):
@@ -140,9 +220,27 @@ def handle_command(cmd: str):
 
     if parts[0] == "pid":
         cli_pid(parts[1:])
+    elif parts[0] == "status":
+        # Additional command for testing
+        msg = f"{COLORS['INFO']}System Status:{COLORS['RESET']}\n"
+        msg += f"  Pitch Angle: {pitch_angle:6.2f}°\n"
+        msg += f"  Roll Angle:  {roll_angle:6.2f}°\n"
+        msg += f"  PID Pitch:   {pitch:6.2f}\n"
+        msg += f"  Setpoint:    {setpoint:6.2f}\n"
+        msg += f"  Streaming:   {'ON' if streaming else 'OFF'}\n"
+        ser.write(msg.encode())
+    elif parts[0] == "help":
+        help_msg = f"{COLORS['INFO']}Available commands:{COLORS['RESET']}\n"
+        help_msg += "  pid set <p|i|d> <value>\n"
+        help_msg += "  pid get <p|i|d>\n"
+        help_msg += "  pid show\n"
+        help_msg += "  pid stream <on|off>\n"
+        help_msg += "  status\n"
+        help_msg += "  help\n"
+        ser.write(help_msg.encode())
     else:
         # Unknown → echo like firmware
-        ser.write(f"Unknown command: {cmd}\n".encode())
+        ser.write(f"{COLORS['WARN']}Unknown command: {cmd}{COLORS['RESET']}\n".encode())
 
 
 def reader_thread():
@@ -156,19 +254,21 @@ def reader_thread():
                 try:
                     handle_command(line.decode().strip())
                 except Exception as e:
-                    ser.write(f"ERR: {e}\n".encode())
+                    ser.write(f"{COLORS['ERROR']}ERR: {e}{COLORS['RESET']}\n".encode())
 
 
 def log_thread():
     """Thread for periodic colored logs"""
+    messages = [
+        ("INFO", "System running smoothly"),
+        ("WARN", "Sensor jitter detected"),
+        ("ERROR", "IMU read timeout")
+    ]
+    
     while True:
-        time.sleep(random.uniform(2, 5))  # every 2–5 sec
-        level = random.choice(["INFO", "WARN", "ERROR"])
-        msg = {
-            "INFO": "System running smoothly",
-            "WARN": "Sensor jitter detected",
-            "ERROR": "IMU read failure!"
-        }[level]
+        time.sleep(random.uniform(3, 8))  # every 3–8 sec
+        level, msg = random.choice(messages)
+
         ser.write(f"{COLORS[level]}[{level}] {msg}{COLORS['RESET']}\n".encode())
 
 
@@ -176,12 +276,14 @@ def log_thread():
 threading.Thread(target=reader_thread, daemon=True).start()
 threading.Thread(target=log_thread, daemon=True).start()
 
-print(f"Emulator running on {PORT} @ {BAUD}")
+print(f"Enhanced emulator running on {PORT} @ {BAUD}")
+print(f"Packet size: {struct.calcsize('<I fff ff B')} bytes")
+print("Commands: pid set/get/show/stream, status, help")
 
 # Main loop for streaming packets
 while True:
     if streaming:
         send_packet()
-        time.sleep(DT)  # 200 Hz
+        time.sleep(DT)  # 100 Hz
     else:
         time.sleep(0.05)
