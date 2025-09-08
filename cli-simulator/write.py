@@ -7,8 +7,8 @@ import math
 
 # === Settings ===
 PORT = "COM7"
-BAUD = 115200
-DT = 0.005  # 100 Hz
+BAUD = 2000000
+DT = 0.001
 
 # === State ===
 streaming = False
@@ -319,6 +319,6 @@ print("Commands: pid set/get/show/stream, imu mahony p/i/show, status, help")
 while True:
     if streaming:
         send_packet()
-        time.sleep(DT)  # 100 Hz
+        time.sleep(DT)
     else:
         time.sleep(0.05)

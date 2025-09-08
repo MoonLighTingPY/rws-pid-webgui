@@ -47,7 +47,7 @@ class SerialService:
         self.packet_counter = 0
         self.last_freq_time = time.time()
 
-    def connect(self, port, baud=115200):
+    def connect(self, port, baud=2000000):
         if self.ser and self.ser.is_open:
             self.disconnect()
         self.ser = serial.Serial(port, baud, timeout=0.05)
@@ -178,7 +178,7 @@ def serve_frontend(path):
 def api_connect():
     data = request.json or {}
     port = data.get("port")
-    baud = int(data.get("baud", 115200))
+    baud = int(data.get("baud", 2000000))
     if not port:
         return jsonify({"error": "port required"}), 400
     try:
