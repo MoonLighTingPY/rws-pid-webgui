@@ -148,6 +148,18 @@ export default function SerialControls() {
             type: 'sent'
           }
         })
+
+        // Request Mahony config on connect
+        await apiService.sendCommand('imu mahony show')
+        dispatch({
+          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+          payload: {
+            timestamp: Date.now(),
+            text: 'imu mahony show',
+            type: 'sent'
+          }
+        })
+
         toast({ title: 'Connected', description: `Connected to ${state.serial.selectedPort}` , status: 'success', duration: 2000, isClosable: true })
       } catch {
         toast({ title: 'Error', description: 'Failed to connect to serial port', status: 'error', duration: 3000, isClosable: true })

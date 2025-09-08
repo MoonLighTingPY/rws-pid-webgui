@@ -17,6 +17,9 @@ timestamp = 0
 # PID coefficients
 pid = {"p": 1.0, "i": 0.5, "d": 0.1}
 
+# Mahony filter coefficients
+mahony = {"p": 2.0, "i": 0.1}
+
 # System state
 setpoint = 0.0
 pitch = 0.0
@@ -202,6 +205,36 @@ def cli_pid(argv):
         ser.write(f"{COLORS['ERROR']}ERR: unknown pid command{COLORS['RESET']}\n".encode())
 
 
+def cli_imu(argv):
+    """Simulate CLI IMU Mahony commands"""
+    global mahony
+
+    if not argv or argv[0].lower() != "mahony":
+        ser.write(b"Usage: imu mahony [p|i|show] [value]\n")
+        return
+
+    if len(argv) == 1:
+        ser.write(b"Usage: imu mahony [p|i|show] [value]\n")
+        return
+
+    cmd = argv[1].lower()
+
+    if cmd in ["p", "i"] and len(argv) == 3:
+        val = argv[2]
+        if _is_float(val):
+            mahony[cmd] = float(val)
+            ser.write(f"{COLORS['INFO']}Set Mahony {cmd.upper()} = {val}{COLORS['RESET']}\n".encode())
+        else:
+            ser.write(f"{COLORS['ERROR']}Invalid value{COLORS['RESET']}\n".encode())
+
+    elif cmd == "show":
+        msg = f"{COLORS['INFO']}P: {mahony['p']:4.2f}, I: {mahony['i']:4.2f}{COLORS['RESET']}\n"
+        ser.write(msg.encode())
+
+    else:
+        ser.write(f"{COLORS['ERROR']}ERR: unknown mahony command{COLORS['RESET']}\n".encode())
+
+
 def _is_float(s: str):
     try:
         float(s)
@@ -218,6 +251,8 @@ def handle_command(cmd: str):
 
     if parts[0] == "pid":
         cli_pid(parts[1:])
+    elif parts[0] == "imu":
+        cli_imu(parts[1:])
     elif parts[0] == "status":
         # Additional command for testing
         msg = f"{COLORS['INFO']}System Status:{COLORS['RESET']}\n"
@@ -233,6 +268,8 @@ def handle_command(cmd: str):
         help_msg += "  pid get <p|i|d>\n"
         help_msg += "  pid show\n"
         help_msg += "  pid stream <on|off>\n"
+        help_msg += "  imu mahony <p|i> <value>\n"
+        help_msg += "  imu mahony show\n"
         help_msg += "  status\n"
         help_msg += "  help\n"
         ser.write(help_msg.encode())
@@ -276,7 +313,7 @@ threading.Thread(target=log_thread, daemon=True).start()
 
 print(f"Enhanced emulator running on {PORT} @ {BAUD}")
 print(f"Packet size: {struct.calcsize('<I fff ff B')} bytes")
-print("Commands: pid set/get/show/stream, status, help")
+print("Commands: pid set/get/show/stream, imu mahony p/i/show, status, help")
 
 # Main loop for streaming packets
 while True:

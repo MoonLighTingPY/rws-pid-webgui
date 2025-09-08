@@ -101,6 +101,18 @@ export default function CommandConsole() {
           }
         })
       }
+
+      // Parse Mahony response "P: 00.00, I: 00.00"
+      const mahonyMatch = lastMessage.text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+)/i)
+      if (mahonyMatch && !/D:/.test(lastMessage.text)) {
+        dispatch({
+          type: 'MAHONY_SET_VALUES',
+          payload: {
+            p: parseFloat(mahonyMatch[1]),
+            i: parseFloat(mahonyMatch[2])
+          }
+        })
+      }
     }
   }, [state.serial.consoleMessages, dispatch])
 
