@@ -1,17 +1,45 @@
-// filepath: frontend/src/components/PIDChart.jsx
 import { Box, Text, IconButton, Icon } from '@chakra-ui/react'
 import { MdOutlineCleaningServices } from 'react-icons/md'
-import { Line } from 'react-chartjs-2'
 import { useStore } from '../store'
+import { useMemo } from 'react'
+import { useUPlot } from './uplot/useUPlot.js'
 
-export default function PIDChart({ data, options }) {
-  const { dispatch } = useStore()
+export default function PIDChart() {
+  const { state, dispatch } = useStore()
+
+  // Build uPlot data arrays: [x[], setpoint[], pitch[], error[]]
+  const data = useMemo(() => {
+    const xs = []
+    const sp = []
+    const pitch = []
+    const err = []
+    for (const p of state.chart.pidData) {
+      xs.push(p.timestamp)
+      sp.push(p.setpoint)
+      pitch.push(p.pitch)
+      err.push(p.error)
+    }
+    return [xs, sp, pitch, err]
+  }, [state.chart.pidData])
+
+  const { containerRef } = useUPlot({
+    data,
+    title: null,
+    series: [
+      {}, // x
+      { label: 'Setpoint', stroke: '#3182ce', width: 2 },
+      { label: 'Pitch', stroke: '#38a169', width: 2 },
+      { label: 'Error', stroke: '#d69e2e', width: 2 },
+    ],
+    yRange: null,
+  })
+
   return (
     <Box
       position="relative"
       flex="1"
       p={3}
-      minW="0" 
+      minW="0"
       bg="white"
       borderRadius="lg"
       border="1px"
@@ -22,7 +50,7 @@ export default function PIDChart({ data, options }) {
     >
       <IconButton
         aria-label="Clear PID data"
-        icon={<Icon as={MdOutlineCleaningServices} boxSize={4} />} // <-- Broom icon
+        icon={<Icon as={MdOutlineCleaningServices} boxSize={4} />}
         size="sm"
         position="absolute"
         top="0.5rem"
@@ -37,9 +65,7 @@ export default function PIDChart({ data, options }) {
       <Text fontWeight="semibold" fontSize="xs" color="gray.500" mb={1}>
         PID Data
       </Text>
-      <Box flex="1" minH="0">
-        <Line data={data} options={options} style={{ height: '100%' }} />
-      </Box>
+      <Box flex="1" minH="0" ref={containerRef} />
     </Box>
   )
 }

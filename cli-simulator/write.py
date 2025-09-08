@@ -8,7 +8,7 @@ import math
 # === Settings ===
 PORT = "COM7"
 BAUD = 2000000
-DT = 0.001
+DT = 0.0009
 
 # === State ===
 streaming = False

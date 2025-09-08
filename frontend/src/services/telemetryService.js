@@ -14,7 +14,7 @@ class TelemetryClient {
     // buffering / batching
     this.pidBuffer = []
     this.angleBuffer = []
-    this.flushIntervalMs = 50
+    this.flushIntervalMs = 1
     this.flushTimer = null
   }
 
