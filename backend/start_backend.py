@@ -210,21 +210,6 @@ def api_send():
     except Exception as e:
         return jsonify({"error": str(e) or type(e).__name__}), 500
 
-# Legacy SSE endpoint (kept for backward compatibility)
-@app.route("/stream")
-def stream():
-    def event_stream():
-        while True:
-            item = serial_service.q.get()
-            yield "data: " + json.dumps(item) + "\n\n"
-    headers = {
-        "Cache-Control": "no-cache",
-        "Connection": "keep-alive",
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Headers": "Content-Type",
-        "Access-Control-Allow-Methods": "GET",
-    }
-    return Response(stream_with_context(event_stream()), mimetype="text/event-stream", headers=headers)
 
 # WebSocket endpoint
 if sock:

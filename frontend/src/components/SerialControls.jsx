@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import {
   Box,
   VStack,
@@ -15,11 +15,11 @@ import { FiLogIn, FiLogOut, FiRefreshCw } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/SerialControls.css'
+import { useTelemetry } from '../services/telemetryService.js'  // <-- added
 
 export default function SerialControls() {
   const { state, dispatch } = useStore()
   const toast = useToast()
-  const [eventSource, setEventSource] = useState(null)
   const sentInitialRef = useRef(false)
 
   const loadPorts = useCallback(async () => {
@@ -84,77 +84,11 @@ export default function SerialControls() {
     }
   }, [state.serial.isConnected, sendInitialCommands])
 
-  // Setup EventSource for real-time data
-  useEffect(() => {
-    if (state.serial.isConnected && !eventSource) {
-      const es = apiService.createEventSource()
-
-      es.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          if (!data.type) return
-          switch (data.type) {
-          case 'pid':
-            if (state.serial.isStreaming) {
-              dispatch({
-                type: 'CHART_ADD_PID_DATA',
-                payload: {
-                  timestamp: data.timestamp,
-                  setpoint: data.setpoint,
-                  pitch: data.pitch,
-                  error: data.error,
-                }
-              })
-            }
-            break
-          case 'angle':
-            if (state.serial.isStreaming) {
-              dispatch({
-                type: 'CHART_ADD_ANGLE_DATA',
-                payload: {
-                  timestamp: data.timestamp,
-                  pitch_angle: data.pitch_angle,
-                  roll_angle: data.roll_angle,
-                }
-              })
-            }
-            break
-          case 'freq':
-            dispatch({ type: 'CHART_SET_FREQUENCY', payload: data.value })
-            break
-          case 'console':
-            dispatch({
-              type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-              payload: { timestamp: Date.now(), text: data.text, type: 'received' }
-            })
-            break
-          default:
-            break
-          }
-        } catch (e) {
-          console.error('Error parsing event data', e)
-        }
-      }
-
-      es.onerror = () => {
-        console.error('EventSource error')
-        es.close()
-        setEventSource(null)
-      }
-
-      setEventSource(es)
-    }
-    return () => {
-      if (eventSource) {
-        eventSource.close()
-        setEventSource(null)
-      }
-    }
-  }, [state.serial.isConnected, state.serial.isStreaming, eventSource, dispatch])
+  // Bind telemetry lifecycle to connection + streaming
+  useTelemetry(state.serial.isConnected, state.serial.isStreaming, dispatch)
 
   const handleConnect = async () => {
     if (state.serial.isConnected) {
-      // Disconnect
       try {
         if (state.serial.isStreaming) {
           await apiService.sendCommand('pid stream off')
@@ -165,8 +99,7 @@ export default function SerialControls() {
         dispatch({ type: 'CHART_CLEAR_PID_DATA' })
         dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
         dispatch({ type: 'CHART_SET_FREQUENCY', payload: 0 })
-        if (eventSource) { eventSource.close(); setEventSource(null) }
-        sentInitialRef.current = false // Reset the flag on disconnect
+        sentInitialRef.current = false
         toast({ title: 'Disconnected', status: 'info', duration: 2000, isClosable: true })
       } catch {
         toast({ title: 'Error', description: 'Failed to disconnect', status: 'error', duration: 3000, isClosable: true })
