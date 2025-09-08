@@ -7,18 +7,19 @@ import math
 
 # === Settings ===
 PORT = "COM7"
-BAUD = 115200
-DT = 0.005  # 100 Hz
+BAUD = 2000000
+DT = 0.001
 
 # === State ===
 streaming = False
-timestamp = 0
+timestamp = 0.0
+START_TIME = time.monotonic()
 
-# PID coefficients
-pid = {"p": 1.0, "i": 0.5, "d": 0.1}
+# PID coefficients (matching C struct names)
+pid = {"kp": 1.0, "ki": 0.5, "kd": 0.1}
 
-# Mahony filter coefficients
-mahony = {"p": 2.0, "i": 0.1}
+# Mahony filter coefficients (matching C struct)
+mahony = {"kp": 2.0, "ki": 0.1}
 
 # System state
 setpoint = 0.0
@@ -60,7 +61,7 @@ def update_system():
     derivative = (error - last_error) / DT
     last_error = error
 
-    u = pid["p"] * error + pid["i"] * integral + pid["d"] * derivative
+    u = pid["kp"] * error + pid["ki"] * integral + pid["kd"] * derivative
 
     # --- System dynamics ---
     # Let's model a 2nd-order system (mass-spring-damper like)
@@ -137,7 +138,11 @@ def update_imu_angles():
 def send_packet():
     """Send one binary data packet according to new struct format"""
     global timestamp
-    
+
+    # Compute timestamp from a monotonic clock (ms). This avoids truncation
+    # errors when DT is small and keeps timestamps consistent with real time.
+    timestamp = (time.monotonic() - START_TIME) * 1000.0
+
     # Update PID system
     sp, pv, err = update_system()
     
@@ -149,8 +154,9 @@ def send_packet():
     # struct pid { float setpoint, pitch, error }
     # struct angle { float pitch_angle, roll_angle }
     # uint8_t end
-    packet = struct.pack("<I fff ff B", 
-                        timestamp,      # timestamp
+    # Use exact same format as backend PACKET_STRUCT ("<IfffffB")
+    packet = struct.pack("<IfffffB", 
+                        int(timestamp) & 0xFFFFFFFF,  # timestamp as uint32 ms
                         sp, pv, err,    # pid struct
                         pa, ra,         # angle struct
                         10)             # end ('\n')
@@ -159,83 +165,136 @@ def send_packet():
         ser.write(packet)
     except serial.SerialTimeoutException:
         pass  # or log the error
-    timestamp += int(DT * 1000)  # ms
+
+
+def cli_cmd_onoff(value_str):
+    """Simulate C function cli_cmd_onoff"""
+    if value_str.lower() == "on":
+        return 1
+    elif value_str.lower() == "off":
+        return 0
+    else:
+        return -1
 
 
 def cli_pid(argv):
-    """Simulate CLI PID commands"""
+    """Simulate CLI PID commands - EXACT match to updated C behavior"""
     global pid, streaming
 
     if not argv:
-        ser.write(b"Usage: pid [set|get|show|stream]\n")
+        # Return error if no arguments (matching C code return -1)
+        ser.write(f"{COLORS['ERROR']}ERR: missing arguments{COLORS['RESET']}\n".encode())
+        return
+
+    cmd = argv[0].lower()
+    
+    if cmd == "show":
+        # Show all PID values (exact format match)
+        msg = f"p: {pid['kp']:4.2f}, i: {pid['ki']:4.2f}, d: {pid['kd']:4.2f}\n"
+        ser.write(msg.encode())
+        
+    elif cmd == "set" and len(argv) >= 3:
+        param = argv[1].lower()
+        val = argv[2]
+        if _is_float(val):
+            value = float(val)
+            if param == "p":
+                pid["kp"] = value
+                ser.write(f"{COLORS['INFO']}PID kP set to {value}{COLORS['RESET']}\n".encode())
+            elif param == "i":
+                pid["ki"] = value
+                ser.write(f"{COLORS['INFO']}PID kI set to {value}{COLORS['RESET']}\n".encode())
+            elif param == "d":
+                pid["kd"] = value
+                ser.write(f"{COLORS['INFO']}PID kD set to {value}{COLORS['RESET']}\n".encode())
+            else:
+                ser.write(f"{COLORS['ERROR']}ERR: unknown parameter{COLORS['RESET']}\n".encode())
+        else:
+            ser.write(f"{COLORS['ERROR']}ERR: invalid value{COLORS['RESET']}\n".encode())
+            
+    elif cmd == "get" and len(argv) >= 2:
+        param = argv[1].lower()
+        if param == "p":
+            ser.write(f"{pid['kp']:4.2f}\n".encode())
+        elif param == "i":
+            ser.write(f"{pid['ki']:4.2f}\n".encode())
+        elif param == "d":
+            ser.write(f"{pid['kd']:4.2f}\n".encode())
+        else:
+            ser.write(f"{COLORS['ERROR']}ERR: unknown parameter{COLORS['RESET']}\n".encode())
+            
+    elif cmd == "stream" and len(argv) >= 2:
+        value = cli_cmd_onoff(argv[1])
+        if value == 0:
+            streaming = False
+            ser.write(f"{COLORS['WARN']}PID streaming OFF{COLORS['RESET']}\n".encode())
+        elif value == 1:
+            streaming = True
+            ser.write(f"{COLORS['INFO']}PID streaming ON{COLORS['RESET']}\n".encode())
+        else:
+            ser.write(f"{COLORS['ERROR']}ERR: invalid on/off value{COLORS['RESET']}\n".encode())
+    else:
+        # Show help (matching C code help string format)
+        help_msg = "\nCMD: pid >\n\tset    - set coefs value <p|i|d> <value>\n\tget    - get coefs value <p|i|d>\n\tshow   - print coefs values\n\tstream - on/off data stream <on|off>\n"
+        ser.write(help_msg.encode())
+
+
+def cli_imu(argv):
+    """Simulate CLI IMU commands - EXACT match to updated C behavior"""
+    global mahony
+
+    if not argv:
+        # Return error if no arguments (matching C code return -1)
+        ser.write(f"{COLORS['ERROR']}ERR: missing arguments{COLORS['RESET']}\n".encode())
         return
 
     cmd = argv[0].lower()
 
-    if cmd == "set" and len(argv) == 3:
-        coef, val = argv[1].lower(), argv[2]
-        if coef in pid and _is_float(val):
-            pid[coef] = float(val)
-            ser.write(f"{COLORS['INFO']}Set {coef.upper()} = {val}{COLORS['RESET']}\n".encode())
+    if cmd == "calib":
+        # Simulate calibration start
+        ser.write(f"{COLORS['INFO']}Starting gyro calibration...{COLORS['RESET']}\n".encode())
+        
+    elif cmd == "level":
+        # Simulate level wizard start
+        ser.write(f"{COLORS['INFO']}Starting level calibration wizard...{COLORS['RESET']}\n".encode())
+        
+    elif cmd == "mahony" and len(argv) >= 2:
+        # Support both "imu mahony p|i <val>" and "imu mahony show"
+        subcmd = argv[1].lower()
+        if subcmd == "p" and len(argv) >= 3:
+            val = argv[2]
+            if _is_float(val):
+                mahony["kp"] = float(val)
+                ser.write(f"{COLORS['INFO']}Mahony kP set to {val}{COLORS['RESET']}\n".encode())
+            else:
+                ser.write(f"{COLORS['ERROR']}ERR: invalid value{COLORS['RESET']}\n".encode())
+        elif subcmd == "i" and len(argv) >= 3:
+            val = argv[2]
+            if _is_float(val):
+                mahony["ki"] = float(val)
+                ser.write(f"{COLORS['INFO']}Mahony kI set to {val}{COLORS['RESET']}\n".encode())
+            else:
+                ser.write(f"{COLORS['ERROR']}ERR: invalid value{COLORS['RESET']}\n".encode())
+        elif subcmd == "show":
+            # Accept "imu mahony show" (handled by frontend)
+            msg = f"P: {mahony['kp']:4.2f}, I: {mahony['ki']:4.2f}\n"
+            ser.write(msg.encode())
         else:
-            ser.write(f"{COLORS['ERROR']}Invalid value{COLORS['RESET']}\n".encode())
-
-    elif cmd == "get" and len(argv) == 2:
-        coef = argv[1].lower()
-        if coef in pid:
-            ser.write(f"{COLORS['INFO']}{coef.upper()} = {pid[coef]:.2f}{COLORS['RESET']}\n".encode())
-        else:
-            ser.write(f"{COLORS['ERROR']}Unknown coefficient{COLORS['RESET']}\n".encode())
-
+            ser.write(f"{COLORS['ERROR']}ERR: mahony usage: mahony <p|i|show> <value>{COLORS['RESET']}\n".encode())
+            
     elif cmd == "show":
-        msg = f"{COLORS['INFO']}P: {pid['p']:4.2f}, I: {pid['i']:4.2f}, D: {pid['d']:4.2f}{COLORS['RESET']}\n"
+        # Show Mahony coefficients (exact format match)
+        msg = f"P: {mahony['kp']:4.2f}, I: {mahony['ki']:4.2f}\n"
         ser.write(msg.encode())
-
-    elif cmd == "stream" and len(argv) == 2:
-        if argv[1].lower() == "on":
-            streaming = True
-            ser.write(f"{COLORS['INFO']}Streaming ON{COLORS['RESET']}\n".encode())
-        elif argv[1].lower() == "off":
-            streaming = False
-            ser.write(f"{COLORS['WARN']}Streaming OFF{COLORS['RESET']}\n".encode())
-        else:
-            ser.write(b"Usage: pid stream [on|off]\n")
-
+        
     else:
-        ser.write(f"{COLORS['ERROR']}ERR: unknown pid command{COLORS['RESET']}\n".encode())
-
-
-def cli_imu(argv):
-    """Simulate CLI IMU Mahony commands"""
-    global mahony
-
-    if not argv or argv[0].lower() != "mahony":
-        ser.write(b"Usage: imu mahony [p|i|show] [value]\n")
-        return
-
-    if len(argv) == 1:
-        ser.write(b"Usage: imu mahony [p|i|show] [value]\n")
-        return
-
-    cmd = argv[1].lower()
-
-    if cmd in ["p", "i"] and len(argv) == 3:
-        val = argv[2]
-        if _is_float(val):
-            mahony[cmd] = float(val)
-            ser.write(f"{COLORS['INFO']}Set Mahony {cmd.upper()} = {val}{COLORS['RESET']}\n".encode())
-        else:
-            ser.write(f"{COLORS['ERROR']}Invalid value{COLORS['RESET']}\n".encode())
-
-    elif cmd == "show":
-        msg = f"{COLORS['INFO']}P: {mahony['p']:4.2f}, I: {mahony['i']:4.2f}{COLORS['RESET']}\n"
-        ser.write(msg.encode())
-
-    else:
-        ser.write(f"{COLORS['ERROR']}ERR: unknown mahony command{COLORS['RESET']}\n".encode())
+        # Show help (matching C code help string format)
+        help_msg = "\nCMD: imu >\n\tcalib  - start Gyro calibration\n\tlevel  - wizard tool to calibrate min-center-max angles\n\tshow   - show filter coefficients\n\tmahony - filter coefficients <p|i> <value>\n"
+        ser.write(help_msg.encode())
 
 
 def _is_float(s: str):
+    """Check if string is valid float (matching C atof behavior)"""
     try:
         float(s)
         return True
@@ -244,7 +303,7 @@ def _is_float(s: str):
 
 
 def handle_command(cmd: str):
-    """Parse CLI-like command line"""
+    """Parse CLI-like command line - EXACT match to C execute_cb"""
     parts = cmd.strip().split()
     if not parts:
         return
@@ -253,6 +312,11 @@ def handle_command(cmd: str):
         cli_pid(parts[1:])
     elif parts[0] == "imu":
         cli_imu(parts[1:])
+    elif parts[0] == "help" or parts[0] == "?":
+        # Show all available commands (matching C code)
+        help_msg = "\nCMD: pid >\n\tset    - set coefs value <p|i|d> <value>\n\tget    - get coefs value <p|i|d>\n\tshow   - print coefs values\n\tstream - on/off data stream <on|off>\n"
+        help_msg += "\nCMD: imu >\n\tcalib  - start Gyro calibration\n\tlevel  - wizard tool to calibrate min-center-max angles\n\tshow   - show filter coefficients\n\tmahony - filter coefficients <p|i> <value>\n"
+        ser.write(help_msg.encode())
     elif parts[0] == "status":
         # Additional command for testing
         msg = f"{COLORS['INFO']}System Status:{COLORS['RESET']}\n"
@@ -261,20 +325,11 @@ def handle_command(cmd: str):
         msg += f"  PID Pitch:   {pitch:6.2f}\n"
         msg += f"  Setpoint:    {setpoint:6.2f}\n"
         msg += f"  Streaming:   {'ON' if streaming else 'OFF'}\n"
+        msg += f"  PID: kP={pid['kp']:4.2f}, kI={pid['ki']:4.2f}, kD={pid['kd']:4.2f}\n"
+        msg += f"  Mahony: kP={mahony['kp']:4.2f}, kI={mahony['ki']:4.2f}\n"
         ser.write(msg.encode())
-    elif parts[0] == "help":
-        help_msg = f"{COLORS['INFO']}Available commands:{COLORS['RESET']}\n"
-        help_msg += "  pid set <p|i|d> <value>\n"
-        help_msg += "  pid get <p|i|d>\n"
-        help_msg += "  pid show\n"
-        help_msg += "  pid stream <on|off>\n"
-        help_msg += "  imu mahony <p|i> <value>\n"
-        help_msg += "  imu mahony show\n"
-        help_msg += "  status\n"
-        help_msg += "  help\n"
-        ser.write(help_msg.encode())
     else:
-        # Unknown → echo like firmware
+        # Unknown command - return error code 1 (matching C code)
         ser.write(f"{COLORS['WARN']}Unknown command: {cmd}{COLORS['RESET']}\n".encode())
 
 
@@ -303,7 +358,6 @@ def log_thread():
     while True:
         time.sleep(random.uniform(3, 8))  # every 3–8 sec
         level, msg = random.choice(messages)
-
         ser.write(f"{COLORS[level]}[{level}] {msg}{COLORS['RESET']}\n".encode())
 
 
@@ -313,12 +367,50 @@ threading.Thread(target=log_thread, daemon=True).start()
 
 print(f"Enhanced emulator running on {PORT} @ {BAUD}")
 print(f"Packet size: {struct.calcsize('<I fff ff B')} bytes")
-print("Commands: pid set/get/show/stream, imu mahony p/i/show, status, help")
+print("Commands matching C firmware:")
+print("  pid set <p|i|d> <value>")
+print("  pid get <p|i|d>")
+print("  pid show")
+print("  pid stream <on|off>")
+print("  imu calib")
+print("  imu level")
+print("  imu mahony <p|i> <value>")
+print("  imu mahony show")
+print("  help or ?")
+print("  status (simulator only)")
 
-# Main loop for streaming packets
-while True:
+# Main loop for streaming packets (improved timing)
+next_time = time.perf_counter()
+interval = DT
+sent_count = 0
+report_time = time.perf_counter()
+
+try:
+  while True:
     if streaming:
-        send_packet()
-        time.sleep(DT)  # 100 Hz
+      now = time.perf_counter()
+      # If we're ahead of schedule, sleep most of the remaining time
+      if now < next_time:
+        to_sleep = next_time - now
+        if to_sleep > 0.002:
+          time.sleep(to_sleep - 0.001)   # sleep coarse part
+        else:
+          # short spin for sub-ms remainder to improve precision
+          while time.perf_counter() < next_time:
+            pass
+      # send packet and advance the schedule
+      send_packet()
+      sent_count += 1
+      next_time += interval
+      # catch-up logic if we're falling behind too far
+      if time.perf_counter() - next_time > 0.1:
+        next_time = time.perf_counter() + interval
     else:
-        time.sleep(0.05)
+      time.sleep(0.05)
+
+    # Optional: print a simple rate every second for diagnostics
+    if time.perf_counter() - report_time >= 1.0:
+      sent_count = 0
+      report_time += 1.0
+except KeyboardInterrupt:
+  pass
