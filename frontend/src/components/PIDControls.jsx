@@ -173,7 +173,7 @@ export default function PIDControls() {
     >
       <VStack spacing={3} align="stretch" h="100%">
         {/* Removed panel title/icon per request */}
-        
+          <Text fontSize="xs" marginTop={-2} marginBottom={-2}>PID coefficients</Text>
         {/* PID Inputs + actions inline */}
         <HStack spacing={2} align="end">
           {/* PID Inputs */}

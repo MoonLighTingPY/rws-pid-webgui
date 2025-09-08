@@ -8,9 +8,10 @@ import {
   Text,
   useToast,
   Icon,
-  Divider
+  Divider,
+  IconButton
 } from '@chakra-ui/react'
-import { FiTerminal, FiSend, FiTrash2 } from 'react-icons/fi'
+import {  FiSend, FiRefreshCw } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/CommandConsole.css'
@@ -227,37 +228,37 @@ export default function CommandConsole() {
             fontSize="sm"
             size="sm"
           />
-          <Button 
-            size="sm" 
-            onClick={handleClearConsole} 
+            <Button
+              colorScheme="blue"
+              onClick={handleSendCommand}
+              disabled={!state.serial.isConnected || !command.trim()}
+              leftIcon={<Icon as={FiSend} boxSize={3} />}
+              _hover={{
+                transform: (state.serial.isConnected && command.trim()) ? "translateY(-1px)" : "none",
+                boxShadow: (state.serial.isConnected && command.trim()) ? "lg" : "none"
+              }}
+              transition="all 0.2s"
+              size="sm"
+              px={4}
+            >
+              Send
+          </Button>
+          <IconButton
+            aria-label="Clear console"
+            onClick={handleClearConsole}
             variant="outline"
-            leftIcon={<Icon as={FiTrash2} boxSize={3} />}
+            icon={<Icon as={FiRefreshCw} boxSize={3} />}
             borderColor="gray.300"
-            _hover={{ 
-              borderColor: "red.300", 
+            size="sm"
+            _hover={{
+              borderColor: "red.300",
               color: "red.500",
               transform: "translateY(-1px)"
             }}
             transition="all 0.2s"
-            px={3}
-          >
-            Clear
-          </Button>
-          <Button
-            colorScheme="blue"
-            onClick={handleSendCommand}
-            disabled={!state.serial.isConnected || !command.trim()}
-            leftIcon={<Icon as={FiSend} boxSize={3} />}
-            _hover={{
-              transform: (state.serial.isConnected && command.trim()) ? "translateY(-1px)" : "none",
-              boxShadow: (state.serial.isConnected && command.trim()) ? "lg" : "none"
-            }}
-            transition="all 0.2s"
-            size="sm"
-            px={4}
-          >
-            Send
-          </Button>
+            minW="auto"
+            px={2}
+          />
         </HStack>
       </VStack>
     </Box>

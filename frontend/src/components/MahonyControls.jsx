@@ -116,6 +116,7 @@ export default function MahonyControls() {
       minW="0"
     >
       <VStack spacing={3} align="stretch" h="100%">
+        <Text fontSize="xs" marginTop={-2} marginBottom={-2}>IMU Mahony</Text>
         <HStack spacing={2} align="end">
           <Box flex="1">
             <HStack spacing={2} align="center">
