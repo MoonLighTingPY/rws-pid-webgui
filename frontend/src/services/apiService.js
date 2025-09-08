@@ -7,7 +7,7 @@ export const apiService = {
     return response.json()
   },
 
-  async connect(port, baud = 115200) {
+  async connect(port, baud = 2000000) {
     const response = await fetch(`${API_BASE}/api/connect`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
