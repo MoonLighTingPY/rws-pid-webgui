@@ -92,44 +92,44 @@ export default function ChartArea() {
   return (
     <Box position="relative" p={4} bg="white" borderRadius="xl" shadow="lg" h="100%" display="flex" flexDirection="column" minW="0">
       <VStack spacing={4} h="100%" align="stretch" minW="0">
-        {/* Time Window Slider */}
-        <Box bg="gray.50" p={3} borderRadius="lg" flexShrink={0}>
-          <HStack justify="space-between" mb={2}>
-            <Text fontWeight="medium" color="gray.600" fontSize="sm">
-              Time Window: <Text as="span" color="blue.600" fontWeight="semibold">{state.chart.timeWindow}s</Text>
-            </Text>
-            <Badge colorScheme="purple" fontSize="0.7rem">
-              {state.chart.packetFrequency.toFixed(0)} Hz
-            </Badge>
-          </HStack>
-
-          {/* Slider row with StreamingToggle to the right */}
-          <HStack spacing={3} align="center">
-            <Box flex="1">
-              <Slider
-                value={state.chart.timeWindow}
-                onChange={handleTimeWindowChange}
-                min={10}
-                max={60}
-                step={5}
-                colorScheme="blue"
-              >
-                <SliderTrack bg="gray.200">
-                  <SliderFilledTrack />
-                </SliderTrack>
-                <SliderThumb boxSize={4} />
-              </Slider>
+        {/* Time Window slider row (no container padding). Streaming toggle & Hz badge sit to the right */}
+        <HStack spacing={3} align="stretch">
+          <Box bg="gray.50" borderRadius="lg" flex="1" p={0}>
+            
+            {/* Slider column */}
+            <Box flex="1" px={4} py={3} display="flex" alignItems="center">
+              <HStack spacing={2} align="center" flex="1">
+                <Text 
+                  fontWeight="medium" 
+                  color="gray.600" 
+                  fontSize="xs"
+                  minW="6rem"  // Fixed minimum width to prevent squishing
+                  flexShrink={0}  // Prevent text from shrinking
+                >
+                  Time Window: <Text as="span" color="blue.600" fontWeight="semibold">{state.chart.timeWindow}s</Text>
+                </Text>
+                <Slider
+                  value={state.chart.timeWindow}
+                  onChange={handleTimeWindowChange}
+                  min={1}
+                  max={60}
+                  step={1}
+                  colorScheme="blue"
+                  flex="1"
+                >
+                  <SliderTrack bg="gray.200">
+                    <SliderFilledTrack />
+                  </SliderTrack>
+                  <SliderThumb boxSize={4} />
+                </Slider>
+              </HStack>
             </Box>
 
-            {/* Toggle placed to the right of the slider.
-                - height approximates the slider row (aligned center)
-                - width follows the angle-gauges padding scale */
-            }
-            <Box align="center" display="flex" alignItems="center" justifyContent="center" h="40px" w={{ base: '2.5rem', md: '3rem' }}>
-              <StreamingToggle onClick={() => { /* noop for now — not wired */ }} />
-            </Box>
-          </HStack>
-        </Box>
+            {/* Streaming column - outside of slider area */}
+          </Box>
+          <StreamingToggle />
+
+        </HStack>
 
         {/* top row: angle chart + gauges */}
         <Box flex="0.55" minH="0" display="flex" minW="0">

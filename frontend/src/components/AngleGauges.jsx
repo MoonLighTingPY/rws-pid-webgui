@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect, useState } from 'react'
+import { useRef, useEffect, useState } from 'react'
 import { Box, VStack, HStack, Text, CircularProgress } from '@chakra-ui/react'
 import { useStore } from '../store'
 
@@ -9,13 +9,7 @@ export default function AngleGauges() {
   const roll  = last.roll_angle  ?? 0
   const toPct = a => (a + 180) / 360 * 100
 
-  // Scale intent from time window
-  const twScale = useMemo(() => {
-    const tw = state.chart.timeWindow || 30
-    const s = 0.8 + (60 - Math.min(60, Math.max(10, tw))) / 60
-    return Math.max(0.7, Math.min(1.4, s))
-  }, [state.chart.timeWindow])
-
+  const twScale = 1.5
   const containerRef = useRef(null)
   const [availablePx, setAvailablePx] = useState(null)
 
