@@ -92,7 +92,8 @@ export function useUPlot({ data, series, yRange, title }) {
         },
       ],
       series: [
-        { ...series[0], show: false },      // x (hidden & will have legend row removed)
+        // hide x series AND ensure no label is rendered (prevents an empty "Value" legend row)
+        { ...series[0], show: false, label: '' },
         ...series.slice(1),
       ],
       hooks: {},
@@ -144,6 +145,9 @@ export function useUPlot({ data, series, yRange, title }) {
     const u = new uPlot(opts, data, containerRef.current)
     plotRef.current = u
 
+    // Force initial tooltip render (show last sample) even if mouse hasn't moved
+    try { updateTooltip(u) } catch (e) { /* ignore */ }
+
     // Move legend to top-center (overlay) and reserve space so it doesn't overlap the plot.
     // This keeps legend clickable and forces uPlot to recalc size after we change layout.
     try {
@@ -162,8 +166,15 @@ export function useUPlot({ data, series, yRange, title }) {
         legendEl.style.pointerEvents = 'auto'
 
         // Remove the first legend row (x series) entirely
-        const firstRow = legendEl.querySelector('.u-series')
+        let firstRow = legendEl.querySelector('.u-series')
         if (firstRow) firstRow.remove()
+
+        // Also remove any remaining legend rows that have an empty label (defensive)
+        const maybeEmpty = legendEl.querySelectorAll('.u-series')
+        maybeEmpty.forEach(r => {
+          const lbl = r.querySelector('.u-label')
+          if (!lbl || !lbl.textContent.trim()) r.remove()
+        })
 
         const lh = Math.ceil(legendEl.getBoundingClientRect().height || 0)
         if (lh > 0) {
@@ -180,9 +191,11 @@ export function useUPlot({ data, series, yRange, title }) {
     }
     
     // legend click handlers (after possibly removing first row)
+    // re-query rows after we removed empty ones
     const legendRows = containerRef.current.querySelectorAll('.u-legend .u-series')
     legendRows.forEach((row, visIdx) => {
-      // visIdx 0 now maps to series index 1 (since x was removed)
+      // map visible-legend index to uPlot series index.
+      // since we removed only the first (x) row, seriesIdx = visIdx + 1
       const seriesIdx = visIdx + 1
       const labelEl = row.querySelector('.u-label')
       if (labelEl) {
@@ -192,6 +205,8 @@ export function useUPlot({ data, series, yRange, title }) {
           u.setSeries(seriesIdx, { show: !curShow })
           u.setData(u.data)          // re-run dynamic range
           updateTooltip(u)           // refresh tooltip to reflect hidden/visible
+          // Visual hint on the legend row for hidden state (optional)
+          row.style.opacity = (!curShow) ? '0.5' : '1'
         })
       }
     })
