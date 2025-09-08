@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Box,
   VStack,
@@ -20,6 +20,7 @@ export default function SerialControls() {
   const { state, dispatch } = useStore()
   const toast = useToast()
   const [eventSource, setEventSource] = useState(null)
+  const sentInitialRef = useRef(false)
 
   const loadPorts = useCallback(async () => {
     try {
@@ -36,10 +37,52 @@ export default function SerialControls() {
     }
   }, [dispatch, toast])
 
+  // Send initial commands
+  const sendInitialCommands = useCallback(async () => {
+    if (!sentInitialRef.current && state.serial.isConnected) {
+      try {
+        // Wait longer for serial backend and simulator to fully initialize
+        await new Promise((r) => setTimeout(r, 500))
+        
+        // Send a simple test command first to "wake up" the simulator
+        await apiService.sendCommand('help')
+        await new Promise((r) => setTimeout(r, 200))
+        
+        // Now send the actual initial commands
+        await apiService.sendCommand('pid show')
+        dispatch({
+          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+          payload: { timestamp: Date.now(), text: 'pid show', type: 'sent' }
+        })
+        
+        await new Promise((r) => setTimeout(r, 100))
+        
+        await apiService.sendCommand('imu mahony show')
+        dispatch({
+          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+          payload: { timestamp: Date.now(), text: 'imu mahony show', type: 'sent' }
+        })
+        
+        sentInitialRef.current = true
+      } catch (e) {
+        console.error('Error sending initial commands', e)
+      }
+    }
+  }, [state.serial.isConnected, dispatch])
+
   // Load available ports on component mount
   useEffect(() => {
     loadPorts()
   }, [loadPorts])
+
+  // Send initial commands when connected
+  useEffect(() => {
+    if (state.serial.isConnected) {
+      sendInitialCommands()
+    } else {
+      sentInitialRef.current = false
+    }
+  }, [state.serial.isConnected, sendInitialCommands])
 
   // Setup EventSource for real-time data
   useEffect(() => {
@@ -121,8 +164,9 @@ export default function SerialControls() {
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: false })
         dispatch({ type: 'CHART_CLEAR_PID_DATA' })
         dispatch({ type: 'CHART_CLEAR_ANGLE_DATA' })
-        dispatch({ type: 'CHART_SET_FREQUENCY', payload: 0 }) // <-- set frequency to 0
+        dispatch({ type: 'CHART_SET_FREQUENCY', payload: 0 })
         if (eventSource) { eventSource.close(); setEventSource(null) }
+        sentInitialRef.current = false // Reset the flag on disconnect
         toast({ title: 'Disconnected', status: 'info', duration: 2000, isClosable: true })
       } catch {
         toast({ title: 'Error', description: 'Failed to disconnect', status: 'error', duration: 3000, isClosable: true })
@@ -137,28 +181,6 @@ export default function SerialControls() {
         await apiService.connect(state.serial.selectedPort)
         dispatch({ type: 'SERIAL_SET_CONNECTED', payload: true })
         dispatch({ type: 'SERIAL_SET_STREAMING', payload: false })
-        // Delay before sending 'pid show'
-        await new Promise(resolve => setTimeout(resolve, 300))
-        await apiService.sendCommand('pid show')
-        dispatch({
-          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-          payload: {
-            timestamp: Date.now(),
-            text: 'pid show',
-            type: 'sent'
-          }
-        })
-
-        // Request Mahony config on connect
-        await apiService.sendCommand('imu mahony show')
-        dispatch({
-          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-          payload: {
-            timestamp: Date.now(),
-            text: 'imu mahony show',
-            type: 'sent'
-          }
-        })
 
         toast({ title: 'Connected', description: `Connected to ${state.serial.selectedPort}` , status: 'success', duration: 2000, isClosable: true })
       } catch {
@@ -166,7 +188,6 @@ export default function SerialControls() {
       }
     }
   }
-
 
   return (
     <Box 
@@ -177,11 +198,9 @@ export default function SerialControls() {
       border="1px" 
       borderColor="gray.200"
       flexShrink={0}
-      minW="0"              // defensive
+      minW="0"
     >
       <VStack spacing={3} align="stretch">
-        {/* Removed panel title/icon per request */}
-        
         <VStack spacing={2} align="stretch">
           <Box>
             <HStack spacing={2}>
@@ -200,12 +219,10 @@ export default function SerialControls() {
                 {state.serial.availablePorts.map(port => <option key={port} value={port}>{port}</option>)}
               </Select>
 
-              {/* Refresh button */}
               <Button onClick={loadPorts} size="sm" variant="outline" minW="auto" px={2} borderColor="gray.300">
                 <Icon as={FiRefreshCw} boxSize={3} />
               </Button>
 
-              {/* Connect icon button placed in same row */}
               <IconButton
                 aria-label={state.serial.isConnected ? 'Disconnect' : 'Connect'}
                 onClick={handleConnect}
@@ -223,7 +240,6 @@ export default function SerialControls() {
               />
             </HStack>
           </Box>
-          {/* Removed Start/Stop streaming button */}
         </VStack>
       </VStack>
     </Box>

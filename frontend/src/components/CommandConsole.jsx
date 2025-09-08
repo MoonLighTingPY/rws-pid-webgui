@@ -91,7 +91,10 @@ export default function CommandConsole() {
   useEffect(() => {
     const lastMessage = state.serial.consoleMessages[state.serial.consoleMessages.length - 1]
     if (lastMessage && lastMessage.type === 'received') {
-      const pidMatch = lastMessage.text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+),\s*D:\s*([\d.]+)/i)
+      const text = lastMessage.text
+
+      // Try PID first (full P,I,D tuple). If found, update PID and return early
+      const pidMatch = text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+),\s*D:\s*([\d.]+)/i)
       if (pidMatch) {
         dispatch({
           type: 'PID_SET_VALUES',
@@ -101,11 +104,12 @@ export default function CommandConsole() {
             d: parseFloat(pidMatch[3])
           }
         })
+        return // avoid also matching Mahony
       }
 
-      // Parse Mahony response "P: 00.00, I: 00.00"
-      const mahonyMatch = lastMessage.text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+)/i)
-      if (mahonyMatch && !/D:/.test(lastMessage.text)) {
+      // Then try Mahony (P,I). Case-insensitive and won't run if PID matched above.
+      const mahonyMatch = text.match(/P:\s*([\d.]+),\s*I:\s*([\d.]+)/i)
+      if (mahonyMatch) {
         dispatch({
           type: 'MAHONY_SET_VALUES',
           payload: {

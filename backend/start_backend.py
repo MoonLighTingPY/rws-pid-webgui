@@ -51,6 +51,14 @@ class SerialService:
         if self.ser and self.ser.is_open:
             self.disconnect()
         self.ser = serial.Serial(port, baud, timeout=0.05)
+
+        # Clear any transient data so the first real response is not mixed with noise
+        try:
+            self.ser.reset_input_buffer()
+            self.ser.reset_output_buffer()
+        except Exception:
+            pass
+
         self.running = True
         self.thread = threading.Thread(target=self.read_loop, daemon=True)
         self.thread.start()
