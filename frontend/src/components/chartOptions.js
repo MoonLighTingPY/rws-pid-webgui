@@ -8,6 +8,12 @@ export function createChartOptions(latestTimestamp, timeWindow) {
       line: { tension: 0 },
     },
     plugins: {
+      // enable decimation to let Chart.js reduce drawn points
+      decimation: {
+        enabled: true,
+        algorithm: 'lttb', // 'lttb' or 'min-max'
+        samples: 500, // target samples shown per dataset (tune as needed)
+      },
       legend: {
         position: 'top',
         labels: {
@@ -74,7 +80,7 @@ export function createChartOptions(latestTimestamp, timeWindow) {
           },
         },
         grid: { color: '#e2e8f0' },
-        min: latestTimestamp ? latestTimestamp - (timeWindow * 1000) : undefined,
+        min: latestTimestamp ? latestTimestamp - timeWindow * 1000 : undefined,
         max: latestTimestamp || undefined,
       },
       y: {

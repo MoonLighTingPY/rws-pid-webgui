@@ -17,9 +17,25 @@ export function chartReducer(state, action) {
     const newPid = [...state.pidData, latest]
     return { ...state, pidData: prune(newPid, latest.timestamp, state.timeWindow) }
   }
+  // new: accept batches
+  case 'CHART_ADD_PID_BATCH': {
+    const batch = action.payload || []
+    if (!batch.length) return state
+    const latest = batch[batch.length - 1]
+    const newPid = [...state.pidData, ...batch]
+    return { ...state, pidData: prune(newPid, latest.timestamp, state.timeWindow) }
+  }
   case 'CHART_ADD_ANGLE_DATA': {
     const latest = action.payload
     const newAngle = [...state.angleData, latest]
+    return { ...state, angleData: prune(newAngle, latest.timestamp, state.timeWindow) }
+  }
+  // new: accept angle batches
+  case 'CHART_ADD_ANGLE_BATCH': {
+    const batch = action.payload || []
+    if (!batch.length) return state
+    const latest = batch[batch.length - 1]
+    const newAngle = [...state.angleData, ...batch]
     return { ...state, angleData: prune(newAngle, latest.timestamp, state.timeWindow) }
   }
   case 'CHART_CLEAR_PID_DATA':
