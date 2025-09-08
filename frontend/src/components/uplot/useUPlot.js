@@ -91,40 +91,54 @@ export function useUPlot({ data, series, yRange, title }) {
           grid: { stroke: '#edf2f7' },
         },
       ],
-      series,
+      series: [
+        { ...series[0], show: false },      // x (hidden & will have legend row removed)
+        ...series.slice(1),
+      ],
       hooks: {},
       plugins: [
         {
           hooks: {
-            setCursor: (u) => {
-              const idx = u.cursor.idx
-              if (idx == null || idx < 0) {
-                tooltip.hidden = true
-                return
-              }
-              const xVal = u.data[0][idx]
-              let html = `<div style="font-weight:600;margin-bottom:4px">${formatTime(xVal)}</div>`
-              for (let s = 1; s < u.series.length; s++) {
-                const ser = u.series[s]
-                if (ser && ser.show === false) continue
-                const yv = u.data[s] && u.data[s][idx]
-                if (yv == null) continue
-                const label = ser && ser.label ? ser.label : `s${s}`
-                const color = (ser && (ser.stroke || ser.color)) || '#999'
-                html += `<div style="display:flex;align-items:center;gap:8px;margin:2px 0">
-                  <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};"></span>
-                  <span style="font-size:11px">${label}: ${Number(yv).toFixed(2)}</span>
-                </div>`
-              }
-              tooltip.innerHTML = html
-              const left = u.valToPos(xVal, 'x')
-              tooltip.style.left = left + 'px'
-              tooltip.style.top = (u.cursor.top ?? 0) + 'px'
-              tooltip.hidden = false
-            }
+            // unified tooltip updater (persistent)
+            setCursor: (u) => updateTooltip(u),
+            draw:      (u) => updateTooltip(u),
+            setData:   (u) => updateTooltip(u),
           }
         }
       ]
+    }
+
+    // Tooltip update logic (persistent)
+    function updateTooltip(u) {
+      const len = u.data[0]?.length || 0
+      if (!len) {
+        tooltip.hidden = true
+        return
+      }
+      // Use cursor idx if valid; else fall back to last point
+      let idx = u.cursor.idx
+      if (idx == null || idx < 0 || idx >= len) idx = len - 1
+
+      const xVal = u.data[0][idx]
+      let html = `<div style="font-weight:600;margin-bottom:4px">${formatTime(xVal)}</div>`
+      for (let s = 1; s < u.series.length; s++) {
+        const ser = u.series[s]
+        if (!ser || ser.show === false) continue
+        const yv = u.data[s] && u.data[s][idx]
+        if (yv == null) continue
+        const label = ser.label || `s${s}`
+        const color = ser.stroke || ser.color || '#999'
+        html += `<div style="display:flex;align-items:center;gap:8px;margin:2px 0">
+          <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${color};"></span>
+          <span style="font-size:11px">${label}: ${Number(yv).toFixed(2)}</span>
+        </div>`
+      }
+      tooltip.innerHTML = html
+      const left = u.valToPos(xVal, 'x')
+      tooltip.style.left = left + 'px'
+      // If no mouse interaction yet, place near top padding; else follow cursor.y
+      tooltip.style.top = (u.cursor.top ?? 8) + 'px'
+      tooltip.hidden = false
     }
 
     const u = new uPlot(opts, data, containerRef.current)
@@ -145,11 +159,12 @@ export function useUPlot({ data, series, yRange, title }) {
         legendEl.style.left = '50%'
         legendEl.style.transform = 'translateX(-50%)'
         legendEl.style.zIndex = '30'
-        // allow pointer events so labels remain clickable
         legendEl.style.pointerEvents = 'auto'
 
-        // Reserve space by adding top padding to the container equal to legend height + gap.
-        // Then force uPlot to recalc its size so the plot sits below the legend.
+        // Remove the first legend row (x series) entirely
+        const firstRow = legendEl.querySelector('.u-series')
+        if (firstRow) firstRow.remove()
+
         const lh = Math.ceil(legendEl.getBoundingClientRect().height || 0)
         if (lh > 0) {
           containerRef.current.style.paddingTop = `${lh + 8}px`
@@ -164,16 +179,21 @@ export function useUPlot({ data, series, yRange, title }) {
       /* empty */
     }
     
-    // make legend labels clickable to toggle visibility (if legend exists)
-    const legendLabels = containerRef.current.querySelectorAll('.u-legend .u-label')
-    legendLabels.forEach((lab, i) => {
-      if (i === 0) return
-      lab.style.cursor = 'pointer'
-      lab.addEventListener('click', () => {
-        const si = i
-        u.setSeries(si, { show: !u.series[si].show })
-        u.setData(u.data) // force redraw so dynamic range updates when toggling
-      })
+    // legend click handlers (after possibly removing first row)
+    const legendRows = containerRef.current.querySelectorAll('.u-legend .u-series')
+    legendRows.forEach((row, visIdx) => {
+      // visIdx 0 now maps to series index 1 (since x was removed)
+      const seriesIdx = visIdx + 1
+      const labelEl = row.querySelector('.u-label')
+      if (labelEl) {
+        labelEl.style.cursor = 'pointer'
+        labelEl.addEventListener('click', () => {
+          const curShow = u.series[seriesIdx].show !== false
+          u.setSeries(seriesIdx, { show: !curShow })
+          u.setData(u.data)          // re-run dynamic range
+          updateTooltip(u)           // refresh tooltip to reflect hidden/visible
+        })
+      }
     })
 
     const handleResize = () => {
