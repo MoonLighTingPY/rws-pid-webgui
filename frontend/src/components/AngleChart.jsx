@@ -1,5 +1,5 @@
 import { Box, Text, IconButton, Icon } from '@chakra-ui/react'
-import { MdOutlineCleaningServices } from "react-icons/md" // use broom icon
+import { MdOutlineCleaningServices } from 'react-icons/md' // use broom icon
 import { Line } from 'react-chartjs-2'
 import { useStore } from '../store'
 

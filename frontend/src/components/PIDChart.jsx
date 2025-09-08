@@ -1,6 +1,6 @@
 // filepath: frontend/src/components/PIDChart.jsx
 import { Box, Text, IconButton, Icon } from '@chakra-ui/react'
-import { MdOutlineCleaningServices } from "react-icons/md";
+import { MdOutlineCleaningServices } from 'react-icons/md'
 import { Line } from 'react-chartjs-2'
 import { useStore } from '../store'
 

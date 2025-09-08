@@ -33,7 +33,7 @@ export default function PIDControls() {
   // Validation logic
   const validateInput = (val) => {
     // Accept partial numbers like "-", "0.", but not empty or just ".":
-    if (val === "" || val === "." || val === "-.") return false
+    if (val === '' || val === '.' || val === '-.') return false
     const parsed = parseFloat(val)
     if (isNaN(parsed)) return false
     return true
@@ -46,7 +46,7 @@ export default function PIDControls() {
   // Handle input change with validation
   const handleInputChange = (value, setter) => {
     // Allow typing partial numbers
-    if (value === "" || value === "-" || value === "." || value === "-." || /^-?\d*\.?\d*$/.test(value)) {
+    if (value === '' || value === '-' || value === '.' || value === '-.' || /^-?\d*\.?\d*$/.test(value)) {
       setter(value)
     }
   }
@@ -59,8 +59,8 @@ export default function PIDControls() {
     } else {
       // Reset to store value if invalid
       const storeValue = type === 'PID_SET_P' ? state.pid.p : 
-                        type === 'PID_SET_I' ? state.pid.i : 
-                        state.pid.d
+        type === 'PID_SET_I' ? state.pid.i : 
+          state.pid.d
       setter(storeValue.toString())
     }
   }
@@ -173,7 +173,7 @@ export default function PIDControls() {
     >
       <VStack spacing={3} align="stretch" h="100%">
         {/* Removed panel title/icon per request */}
-          <Text fontSize="xs" marginTop={-2} marginBottom={-2}>PID coefficients</Text>
+        <Text fontSize="xs" marginTop={-2} marginBottom={-2}>PID coefficients</Text>
         {/* PID Inputs + actions inline */}
         <HStack spacing={2} align="end">
           {/* PID Inputs */}
@@ -186,8 +186,8 @@ export default function PIDControls() {
                 onBlur={(e) => handleInputBlur(e.target.value, setPInput, 'PID_SET_P')}
                 textAlign="center"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
@@ -204,8 +204,8 @@ export default function PIDControls() {
                 onBlur={(e) => handleInputBlur(e.target.value, setIInput, 'PID_SET_I')}
                 textAlign="center"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
@@ -222,8 +222,8 @@ export default function PIDControls() {
                 onBlur={(e) => handleInputBlur(e.target.value, setDInput, 'PID_SET_D')}
                 textAlign="center"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
@@ -252,8 +252,8 @@ export default function PIDControls() {
               icon={<Icon as={FiCheck} boxSize={3} />}
               isDisabled={!state.serial.isConnected || !allValid}
               _hover={{
-                transform: state.serial.isConnected && allValid ? "translateY(-1px)" : "none",
-                boxShadow: state.serial.isConnected && allValid ? "lg" : "none"
+                transform: state.serial.isConnected && allValid ? 'translateY(-1px)' : 'none',
+                boxShadow: state.serial.isConnected && allValid ? 'lg' : 'none'
               }}
               transition="all 0.2s"
             />

@@ -27,14 +27,14 @@ export default function MahonyControls() {
   }, [state.mahony?.p, state.mahony?.i])
 
   const validateInput = (val) => {
-    if (val === "" || val === "." || val === "-.") return false
+    if (val === '' || val === '.' || val === '-.') return false
     const parsed = parseFloat(val)
     if (isNaN(parsed)) return false
     return true
   }
 
   const handleInputChange = (value, setter) => {
-    if (value === "" || value === "-" || value === "." || value === "-." || /^-?\d*\.?\d*$/.test(value)) {
+    if (value === '' || value === '-' || value === '.' || value === '-.' || /^-?\d*\.?\d*$/.test(value)) {
       setter(value)
     }
   }
@@ -59,9 +59,9 @@ export default function MahonyControls() {
     try {
       const pVal = parseFloat(pInput)
       const iVal = parseFloat(iInput)
-       // send commands individually like PIDControls
-       await apiService.sendCommand(`imu mahony p ${pVal}`)
-       await apiService.sendCommand(`imu mahony i ${iVal}`)
+      // send commands individually like PIDControls
+      await apiService.sendCommand(`imu mahony p ${pVal}`)
+      await apiService.sendCommand(`imu mahony i ${iVal}`)
 
       const commands = [
         `imu mahony p ${pVal}`,
@@ -102,7 +102,7 @@ export default function MahonyControls() {
 
   const pValid = validateInput(pInput)
   const iValid = validateInput(iInput)
-   const allValid = pValid && iValid
+  const allValid = pValid && iValid
 
   return (
     <Box
@@ -127,8 +127,8 @@ export default function MahonyControls() {
                 onBlur={(e) => handleInputBlur(e.target.value, setPInput, 'MAHONY_SET_P')}
                 textAlign="center"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
@@ -146,8 +146,8 @@ export default function MahonyControls() {
                 onBlur={(e) => handleInputBlur(e.target.value, setIInput, 'MAHONY_SET_I')}
                 textAlign="center"
                 borderColor="gray.300"
-                _hover={{ borderColor: "gray.400" }}
-                _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+                _hover={{ borderColor: 'gray.400' }}
+                _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
                 fontSize="sm"
                 size="sm"
                 placeholder="0.00"
@@ -176,8 +176,8 @@ export default function MahonyControls() {
               icon={<Icon as={FiCheck} boxSize={3} />}
               isDisabled={!state.serial.isConnected || !allValid}
               _hover={{
-                transform: state.serial.isConnected && allValid ? "translateY(-1px)" : "none",
-                boxShadow: state.serial.isConnected && allValid ? "lg" : "none"
+                transform: state.serial.isConnected && allValid ? 'translateY(-1px)' : 'none',
+                boxShadow: state.serial.isConnected && allValid ? 'lg' : 'none'
               }}
               transition="all 0.2s"
             />

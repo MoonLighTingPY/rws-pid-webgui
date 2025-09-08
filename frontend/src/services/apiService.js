@@ -41,6 +41,6 @@ export const apiService = {
   },
 
   createWebSocket() {
-    return new WebSocket(`ws://127.0.0.1:5000/ws`)
+    return new WebSocket('ws://127.0.0.1:5000/ws')
   }
 }

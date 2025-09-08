@@ -11,7 +11,7 @@ import {
   Divider,
   IconButton
 } from '@chakra-ui/react'
-import {  FiSend, FiRefreshCw } from 'react-icons/fi'
+import { FiSend, FiRefreshCw } from 'react-icons/fi'
 import { useStore } from '../store'
 import { apiService } from '../services/apiService.js'
 import '../styles/CommandConsole.css'
@@ -36,16 +36,16 @@ function parseAnsiToReact(text) {
     '95': '#f687b3', // bright magenta
     '96': '#81e6d9', // bright cyan
     '97': '#f7fafc', // bright white
-  };
+  }
 
   // Split text into segments by ANSI codes
   // eslint-disable-next-line no-control-regex
-  const regex = /\x1b\[(\d+)m/g;
-  let result = [];
-  let lastIndex = 0;
-  let color = null;
-  let match;
-  let key = 0;
+  const regex = /\x1b\[(\d+)m/g
+  let result = []
+  let lastIndex = 0
+  let color = null
+  let match
+  let key = 0
 
   while ((match = regex.exec(text)) !== null) {
     if (match.index > lastIndex) {
@@ -54,16 +54,16 @@ function parseAnsiToReact(text) {
         <span key={key++} style={color ? { color } : {}}>
           {text.slice(lastIndex, match.index)}
         </span>
-      );
+      )
     }
     // Update color
-    const code = match[1];
+    const code = match[1]
     if (code === '0') {
-      color = null; // reset
+      color = null // reset
     } else if (ansiColors[code]) {
-      color = ansiColors[code];
+      color = ansiColors[code]
     }
-    lastIndex = regex.lastIndex;
+    lastIndex = regex.lastIndex
   }
   // Add remaining text
   if (lastIndex < text.length) {
@@ -71,9 +71,9 @@ function parseAnsiToReact(text) {
       <span key={key++} style={color ? { color } : {}}>
         {text.slice(lastIndex)}
       </span>
-    );
+    )
   }
-  return result;
+  return result
 }
 
 export default function CommandConsole() {
@@ -133,7 +133,7 @@ export default function CommandConsole() {
 
     try {
       await apiService.sendCommand(command)
-      
+
       dispatch({
         type: 'SERIAL_ADD_CONSOLE_MESSAGE',
         payload: {
@@ -142,7 +142,7 @@ export default function CommandConsole() {
           type: 'sent'
         }
       })
-      
+
       setCommand('')
     } catch {
       toast({
@@ -167,12 +167,12 @@ export default function CommandConsole() {
 
 
   return (
-    <Box 
-      className="command-console" 
+    <Box
+      className="command-console"
       p={3}
-      bg="gray.50" 
-      borderRadius="lg" 
-      border="1px" 
+      bg="gray.50"
+      borderRadius="lg"
+      border="1px"
       borderColor="gray.200"
       h="100%"
       display="flex"
@@ -180,7 +180,7 @@ export default function CommandConsole() {
       minW="0"             // defensive
     >
       <VStack align="stretch" spacing={3} h="100%">
-        
+
         {/* Console Messages */}
         <Box
           className="console-messages"
@@ -222,26 +222,26 @@ export default function CommandConsole() {
             disabled={!state.serial.isConnected}
             bg="white"
             borderColor="gray.300"
-            _hover={{ borderColor: "gray.400" }}
-            _focus={{ borderColor: "blue.500", boxShadow: "0 0 0 1px #3182ce" }}
+            _hover={{ borderColor: 'gray.400' }}
+            _focus={{ borderColor: 'blue.500', boxShadow: '0 0 0 1px #3182ce' }}
             fontFamily="mono"
             fontSize="sm"
             size="sm"
           />
-            <Button
-              colorScheme="blue"
-              onClick={handleSendCommand}
-              disabled={!state.serial.isConnected || !command.trim()}
-              leftIcon={<Icon as={FiSend} boxSize={3} />}
-              _hover={{
-                transform: (state.serial.isConnected && command.trim()) ? "translateY(-1px)" : "none",
-                boxShadow: (state.serial.isConnected && command.trim()) ? "lg" : "none"
-              }}
-              transition="all 0.2s"
-              size="sm"
-              px={4}
-            >
-              Send
+          <Button
+            colorScheme="blue"
+            onClick={handleSendCommand}
+            disabled={!state.serial.isConnected || !command.trim()}
+            leftIcon={<Icon as={FiSend} boxSize={3} />}
+            _hover={{
+              transform: (state.serial.isConnected && command.trim()) ? 'translateY(-1px)' : 'none',
+              boxShadow: (state.serial.isConnected && command.trim()) ? 'lg' : 'none'
+            }}
+            transition="all 0.2s"
+            size="sm"
+            px={4}
+          >
+            Send
           </Button>
           <IconButton
             aria-label="Clear console"
@@ -251,9 +251,9 @@ export default function CommandConsole() {
             borderColor="gray.300"
             size="sm"
             _hover={{
-              borderColor: "red.300",
-              color: "red.500",
-              transform: "translateY(-1px)"
+              borderColor: 'red.300',
+              color: 'red.500',
+              transform: 'translateY(-1px)'
             }}
             transition="all 0.2s"
             minW="auto"

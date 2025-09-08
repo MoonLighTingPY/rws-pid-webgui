@@ -32,8 +32,8 @@ export default function App() {
             flexShrink={0} 
             minH="0"
             // Animate width so left side shrinks smoothly.
-            w={showPanels ? "28rem" : "0"}
-            minW={showPanels ? "28rem" : "0"}
+            w={showPanels ? '28rem' : '0'}
+            minW={showPanels ? '28rem' : '0'}
             transition="width 300ms ease, min-width 300ms ease"
             overflow="visible"   // allow the toggle button to sit outside the collapsed panel
           >

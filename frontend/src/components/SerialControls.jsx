@@ -51,42 +51,42 @@ export default function SerialControls() {
           const data = JSON.parse(event.data)
           if (!data.type) return
           switch (data.type) {
-            case 'pid':
-              if (state.serial.isStreaming) {
-                dispatch({
-                  type: 'CHART_ADD_PID_DATA',
-                  payload: {
-                    timestamp: data.timestamp,
-                    setpoint: data.setpoint,
-                    pitch: data.pitch,
-                    error: data.error,
-                  }
-                })
-              }
-              break
-            case 'angle':
-              if (state.serial.isStreaming) {
-                dispatch({
-                  type: 'CHART_ADD_ANGLE_DATA',
-                  payload: {
-                    timestamp: data.timestamp,
-                    pitch_angle: data.pitch_angle,
-                    roll_angle: data.roll_angle,
-                  }
-                })
-              }
-              break
-            case 'freq':
-              dispatch({ type: 'CHART_SET_FREQUENCY', payload: data.value })
-              break
-            case 'console':
+          case 'pid':
+            if (state.serial.isStreaming) {
               dispatch({
-                type: 'SERIAL_ADD_CONSOLE_MESSAGE',
-                payload: { timestamp: Date.now(), text: data.text, type: 'received' }
+                type: 'CHART_ADD_PID_DATA',
+                payload: {
+                  timestamp: data.timestamp,
+                  setpoint: data.setpoint,
+                  pitch: data.pitch,
+                  error: data.error,
+                }
               })
-              break
-            default:
-              break
+            }
+            break
+          case 'angle':
+            if (state.serial.isStreaming) {
+              dispatch({
+                type: 'CHART_ADD_ANGLE_DATA',
+                payload: {
+                  timestamp: data.timestamp,
+                  pitch_angle: data.pitch_angle,
+                  roll_angle: data.roll_angle,
+                }
+              })
+            }
+            break
+          case 'freq':
+            dispatch({ type: 'CHART_SET_FREQUENCY', payload: data.value })
+            break
+          case 'console':
+            dispatch({
+              type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+              payload: { timestamp: Date.now(), text: data.text, type: 'received' }
+            })
+            break
+          default:
+            break
           }
         } catch (e) {
           console.error('Error parsing event data', e)
@@ -207,7 +207,7 @@ export default function SerialControls() {
 
               {/* Connect icon button placed in same row */}
               <IconButton
-                aria-label={state.serial.isConnected ? "Disconnect" : "Connect"}
+                aria-label={state.serial.isConnected ? 'Disconnect' : 'Connect'}
                 onClick={handleConnect}
                 size="sm"
                 icon={<Icon as={state.serial.isConnected ? FiLogOut : FiLogIn} boxSize={3} />}

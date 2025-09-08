@@ -29,7 +29,7 @@ export default function StreamingToggle() {
 
   return (
     <IconButton
-      aria-label={isStreaming ? "Pause Streaming" : "Start Streaming"}
+      aria-label={isStreaming ? 'Pause Streaming' : 'Start Streaming'}
       icon={<Icon as={isStreaming ? FiPause : FiPlay} boxSize={4} />}
       onClick={handleStartStop}
       size="md"
