@@ -118,6 +118,19 @@ export default function CommandConsole() {
           }
         })
       }
+
+      // Then try IMU Offset (X,Y,Z). Case-insensitive and won't run if PID or Mahony matched above.
+      const imuOffsetMatch = text.match(/X:\s*([\d.-]+),\s*Y:\s*([\d.-]+),\s*Z:\s*([\d.-]+)/i)
+      if (imuOffsetMatch) {
+        dispatch({
+          type: 'IMU_OFFSET_SET_VALUES',
+          payload: {
+            x: parseFloat(imuOffsetMatch[1]),
+            y: parseFloat(imuOffsetMatch[2]),
+            z: parseFloat(imuOffsetMatch[3])
+          }
+        })
+      }
     }
   }, [state.serial.consoleMessages, dispatch])
 

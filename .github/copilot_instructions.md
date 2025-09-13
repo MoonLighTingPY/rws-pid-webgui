@@ -58,11 +58,24 @@ The frontend stack: **React + Vite (JavaScript)**. Architecture rule: all UI par
   - **Set** → sends `imu mahony p|i <value>` commands 
   - **Get** → sends `imu mahony show` and updates inputs from received Mahony values (format: %4.2f) 
 
+#### IMU Offset Controls  
+- Three inputs for **X, Y, Z** offset values  
+- Under each input: **+** and **–** buttons  
+  - Clicking a button sends `imu offset set x|y|z <value>`  
+  - `<value>` is taken from the **step input field** (common for all axes)  
+- **Step input field** (numeric, default e.g. `0.10`) to define increment/decrement step  
+- **Refresh button** → sends `imu offset show`  
+  - Updates inputs from board response in format:  
+    ```
+    X: 0000.00, Y: 0000.00, Z: 0000.00
+    ```  
+    (each value formatted as `%4.2f`)  
+
 #### Command Console 
 - Styled like a real terminal (PuTTY/TeraTerm): 
   - No timestamps or extra metadata 
   - Monospaced font, dark background 
-  - Supports **VT100 color codes** (parse `\x1b[...m` sequences and render colored text, reset on `\x1b[0m)` 
+  - Supports **VT100 color codes** (parse `\x1b[...]m` sequences and render colored text, reset on `\x1b[0m)`) 
   - Input line for manual commands 
   - Shows all incoming/outgoing serial messages **except binary chart data**, which is filtered out 
 
@@ -109,7 +122,10 @@ typedef struct {
   - `pid show` → print all coefficients in format: `P: 0000.00, I: 0000.00, D: 0000.00` (%4.2f) 
 - **Mahony filter management**
   - `imu mahony p <P>` / `imu mahony i <I>` → set coefficient
-  - `imu mahony show` → print coefficients in format: `P: 0000.00, I: 0000.00` (%4.2f)
+  - `imu mahony show` → print coefficients in format: `P: 0000.00, I: 0000.00` (%4.2f) 
+- **IMU offset management**  
+  - `imu offset set x <value>` / `imu offset set y <value>` / `imu offset set z <value>` → set axis offset  
+  - `imu offset show` → print offsets in format: `X: 0000.00, Y: 0000.00, Z: 0000.00` (%4.2f)  
 - **Streaming** 
   - `pid stream on` → enable streaming 
   - `pid stream off` → disable streaming 
@@ -121,7 +137,7 @@ typedef struct {
 
 ## Implementation Notes 
 - Each UI part must be a **standalone React component**: 
-  - `ChartArea`, `PIDChart`, `AngleChart`, `AngleGauges`, `PIDControls`, `MahonyControls` `SerialControls`, `CommandConsole`, `CanvasToggle`, etc.
+  - `ChartArea`, `PIDChart`, `AngleChart`, `AngleGauges`, `PIDControls`, `MahonyControls`, `ImuOffsetControls`, `SerialControls`, `CommandConsole`, `CanvasToggle`, etc.
 - Use slices for state management: 
   - `serialSlice`, `chartSlice`, `pidSlice`, `mahonySlice`, `consoleSlice`, `uiSlice` (for canvas mode state) 
 - Serial communication handled in **Python backend**: 
@@ -149,10 +165,11 @@ typedef struct {
 5. User can toggle **canvas mode** using burger menu for full-screen charts 
 6. User sets/gets PID values through control panel 
 7. User sets/gets Mahony filter values through control panel
-8. Console available for manual commands and colored log output 
-9. **Clear buttons** allow individual chart reset 
-10. **Packet frequency** displays real-time data rate 
-11. **Stop** → `pid stream off`; **Disconnect** closes the port 
+8. User sets/gets IMU offset values through control panel  
+9. Console available for manual commands and colored log output 
+10. **Clear buttons** allow individual chart reset 
+11. **Packet frequency** displays real-time data rate 
+12. **Stop** → `pid stream off`; **Disconnect** closes the port 
 
 ## For agents 
 1. Terminal used is powershell, not cmd. 

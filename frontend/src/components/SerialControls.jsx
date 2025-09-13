@@ -62,6 +62,14 @@ export default function SerialControls() {
           type: 'SERIAL_ADD_CONSOLE_MESSAGE',
           payload: { timestamp: Date.now(), text: 'imu mahony show', type: 'sent' }
         })
+
+        // Request IMU offsets as well so ImuOffsetControls can be populated
+        await new Promise((r) => setTimeout(r, 50))
+        await apiService.sendCommand('imu offset show')
+        dispatch({
+          type: 'SERIAL_ADD_CONSOLE_MESSAGE',
+          payload: { timestamp: Date.now(), text: 'imu offset show', type: 'sent' }
+        })
         
         sentInitialRef.current = true
       } catch (e) {
