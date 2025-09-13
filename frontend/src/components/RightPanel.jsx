@@ -4,8 +4,9 @@ import { FiChevronRight } from 'react-icons/fi'
 import { useStore } from '../store'
 import SerialControls from './SerialControls.jsx'
 import PIDControls from './PIDControls.jsx'
-import MahonyControls from './MahonyControls.jsx' // <-- added import
+import MahonyControls from './MahonyControls.jsx'
 import CommandConsole from './CommandConsole.jsx'
+import ImuOffsetControls from './ImuOffsetControls.jsx'
 
 export default function RightPanel({ isOpen = true }) {
   const { dispatch } = useStore()
@@ -60,7 +61,8 @@ export default function RightPanel({ isOpen = true }) {
       >
         <SerialControls />
         <PIDControls />
-        <MahonyControls />    {/* <-- new Mahony panel added here */}
+        <MahonyControls />
+        <ImuOffsetControls />
         <Box flex="1" minH="0">
           <CommandConsole />
         </Box>
